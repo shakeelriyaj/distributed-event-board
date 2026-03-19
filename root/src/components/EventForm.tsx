@@ -13,13 +13,13 @@ export const EventForm = () => {
     const data = {
       title: formData.get('title') as string,
       description: formData.get('description') as string,
-      eventDate: new Date(formData.get('date') as string).toISOString(),
+      eventDate: new Date().toISOString(),
       location: formData.get('location') as string || undefined,
     };
 
     try {
       const uri = await silentPublishEvent(data);
-      setMessage(`✅ Event Published! URI: ${uri}`);
+      setMessage(`✅ Event Published! URI: ${uri} and ${new Date().toLocaleTimeString()}!`);
     } catch (err) {
       setMessage(`❌ Error: ${err instanceof Error ? err.message : 'Failed to post'}`);
     } finally {
@@ -28,18 +28,43 @@ export const EventForm = () => {
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '20px auto', fontFamily: 'sans-serif' }}>
-      <h2>Create New Event</h2>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <input name="title" placeholder="Event Title" required />
-        <textarea name="description" placeholder="Description" required />
-        <input name="date" type="datetime-local" required />
-        <input name="location" placeholder="Location (Optional)" />
-        <button type="submit" disabled={loading}>
-          {loading ? 'Publishing...' : 'Post to AT Protocol'}
+    <div style={{ background: '#f9f9f9', padding: '20px', borderRadius: '12px', border: '1px solid #eaeaea' }}>
+      <h3 style={{ marginTop: 0 }}>New Post</h3>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <input 
+          name="title" 
+          placeholder="What's happening?" 
+          required 
+          style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}
+        />
+        <textarea 
+          name="description" 
+          placeholder="Add some details..." 
+          required 
+          style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc', minHeight: '80px' }}
+        />
+        <input 
+          name="location" 
+          placeholder="Location (Optional)" 
+          style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}
+        />
+        <button 
+          type="submit" 
+          disabled={loading}
+          style={{ 
+            padding: '12px', 
+            borderRadius: '6px', 
+            border: 'none', 
+            background: '#0070ff', 
+            color: 'white', 
+            fontWeight: 'bold',
+            cursor: loading ? 'not-allowed' : 'pointer' 
+          }}
+        >
+          {loading ? 'Publishing...' : 'Post to Board'}
         </button>
       </form>
-      {message && <p style={{ fontSize: '12px', wordBreak: 'break-all' }}>{message}</p>}
+      {message && <p style={{ marginTop: '10px', fontSize: '13px', color: '#555' }}>{message}</p>}
     </div>
   );
 };
