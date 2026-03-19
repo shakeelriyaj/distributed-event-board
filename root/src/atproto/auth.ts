@@ -1,7 +1,5 @@
 import { agent } from './agent';
-import * as dotenv from 'dotenv';
 
-dotenv.config(); // Loads the .env variables into process.env
 
 export async function loginAsMaster() {
   try {
@@ -9,8 +7,8 @@ export async function loginAsMaster() {
     if (agent.session) return agent.session;
 
     const response = await agent.login({
-      identifier: process.env.ATP_IDENTIFIER!,
-      password: process.env.ATP_PASSWORD!,
+      identifier: import.meta.env.VITE_ATP_IDENTIFIER,
+      password: import.meta.env.VITE_ATP_PASSWORD,
     });
 
     console.log(" Master Account Authenticated:", response.data.handle);
