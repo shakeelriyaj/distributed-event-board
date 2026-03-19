@@ -1,23 +1,36 @@
 import { agent } from './agent';
 import { loginAsMaster } from './auth';
-import { Record as EventRecord } from '../lexicons/types/org/community/event';
+import type { Record as EventRecord } from '../lexicons/types/org/community/event';
 
-export async function silentPublishEvent(formData: Omit<EventRecord, 'createdAt'>) {
-  // 1. Ensure we are logged in as the Master Account
+type SilentPublishEventInput = {
+  title: EventRecord['title']
+  description: EventRecord['description']
+  eventDate: EventRecord['eventDate']
+  location?: EventRecord['location']
+}
+
+export async function silentPublishEvent(formData: SilentPublishEventInput) {
   await loginAsMaster();
 
-  // 2. Prepare the record with the timestamp
+  // Create the base record with required fields
   const record: EventRecord = {
-    ...formData,
+    $type: 'org.community.event',
+    title: formData.title,
+    description: formData.description,
+    eventDate: formData.eventDate,
     createdAt: new Date().toISOString(),
   };
 
-  // 3. Push to the AT Protocol network
+  // Only add location if it actually exists in the form
+  if (formData.location) {
+    record.location = formData.location;
+  }
+
   const response = await agent.com.atproto.repo.createRecord({
     repo: agent.session!.did,
     collection: 'org.community.event',
     record: record,
   });
 
-  return response.uri; // Returns the "AT URI" (the decentralized link to the post)
+  return response.data.uri;
 }
