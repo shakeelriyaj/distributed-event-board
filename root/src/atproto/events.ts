@@ -9,6 +9,20 @@ type SilentPublishEventInput = {
   location?: EventRecord['location']
 }
 
+export async function fetchEvents() {
+  await loginAsMaster(); // Ensure we have a session
+
+  const response = await agent.com.atproto.repo.listRecords({
+    repo: import.meta.env.VITE_ATP_IDENTIFIER, 
+    collection: 'org.community.event',
+    limit: 50,
+    reverse: false, // Shows the newest posts first
+  });
+
+  // ATProto returns records in a 'value' field
+  return response.data.records;
+}
+
 export async function silentPublishEvent(formData: SilentPublishEventInput) {
   await loginAsMaster();
 

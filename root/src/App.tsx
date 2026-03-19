@@ -1,4 +1,5 @@
 import { EventForm } from './components/EventForm'
+import { EventFeed } from './components/EventFeed';
 
 function App() {
   return (
@@ -10,6 +11,8 @@ function App() {
 
       <main>
         <EventForm />
+        <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
+        <EventFeed />
       </main>
       
       <footer style={{ marginTop: '50px', textAlign: 'center', fontSize: '12px', color: '#999' }}>
