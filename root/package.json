@@ -1,0 +1,22 @@
+{
+  "name": "root",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@atproto/api": "^0.19.4",
+    "dotenv": "^17.3.1"
+  },
+  "devDependencies": {
+    "@atproto/lex-cli": "^0.9.9",
+    "@types/node": "^25.5.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
