@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { fetchEvents } from '../atproto/events';
+import { useJetstream, type JetstreamEvent } from '../atproto/jetstream';
 
 export const EventFeed = () => {
   const [events, setEvents] = useState<any[]>([]);
@@ -8,14 +9,56 @@ export const EventFeed = () => {
   const loadEvents = async () => {
     setLoading(true);
     try {
-      const records = await fetchEvents();
+      const response = await fetch('http://localhost:3000/api/events');
+      if (!response.ok) throw new Error('Failed to fetch global events');
+      const records = await response.json();
       setEvents(records);
     } catch (err) {
-      console.error("Failed to load feed:", err);
+      console.error("Failed to load global feed:", err);
     } finally {
       setLoading(false);
     }
   };
+
+  const handleJetstreamEvent = useCallback((event: JetstreamEvent) => {
+    // Jetstream can send different kinds of messages (e.g. 'identity', 'account')
+    // and sometimes 'commit' might be missing in non-commit events.
+    if (event.kind !== 'commit' || !event.commit) return;
+
+    const { did, commit } = event;
+    const { operation, collection, rkey, record, cid } = commit;
+    const uri = `at://${did}/${collection}/${rkey}`;
+
+    setEvents((prevEvents) => {
+      if (operation === 'create') {
+        // Avoid duplicates if we already have it
+        if (prevEvents.some((e) => e.uri === uri)) return prevEvents;
+        
+        const newEvent = {
+          uri,
+          cid,
+          value: record,
+        };
+        // Add to the top of the feed
+        return [newEvent, ...prevEvents];
+      }
+
+      if (operation === 'update') {
+        return prevEvents.map((e) => 
+          e.uri === uri ? { ...e, value: record, cid } : e
+        );
+      }
+
+      if (operation === 'delete') {
+        return prevEvents.filter((e) => e.uri !== uri);
+      }
+
+      return prevEvents;
+    });
+  }, []);
+
+  // Listen for real-time updates via Jetstream
+  useJetstream(handleJetstreamEvent);
 
   // Run once when the component mounts
   useEffect(() => {
