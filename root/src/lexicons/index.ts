@@ -6,8 +6,12 @@ import {
   type FetchHandler,
   type FetchHandlerOptions,
 } from '@atproto/xrpc'
+import type * as ComAtprotoRepoCreateRecord from '@atproto/api/dist/client/types/com/atproto/repo/createRecord.js'
+import type * as ComAtprotoRepoDeleteRecord from '@atproto/api/dist/client/types/com/atproto/repo/deleteRecord.js'
+import type * as ComAtprotoRepoGetRecord from '@atproto/api/dist/client/types/com/atproto/repo/getRecord.js'
+import type * as ComAtprotoRepoListRecords from '@atproto/api/dist/client/types/com/atproto/repo/listRecords.js'
+import type * as ComAtprotoRepoPutRecord from '@atproto/api/dist/client/types/com/atproto/repo/putRecord.js'
 import { schemas } from './lexicons.js'
-import { CID } from 'multiformats/cid'
 import { type OmitKey, type Un$Typed } from './util.js'
 import * as OrgCommunityEvent from './types/org/community/event.js'
 

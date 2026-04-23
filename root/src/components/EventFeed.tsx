@@ -1,5 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { fetchEvents } from '../atproto/events';
+import { useEffect, useState, useCallback } from 'react';
 import { useJetstream, type JetstreamEvent } from '../atproto/jetstream';
 
 export const EventFeed = () => {
