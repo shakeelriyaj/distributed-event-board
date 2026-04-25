@@ -621,3 +621,94 @@
   max-width: 900px;
   margin: 0 auto;
 }
+
+.atp-verify {
+  border: 1px solid #d9e3ff;
+  background: #f8fbff;
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 6px;
+}
+
+.atp-verify__header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #123a7a;
+}
+
+.atp-verify__header p {
+  margin: 6px 0 0;
+  color: #51617f;
+}
+
+.atp-verify__row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 14px;
+}
+
+.atp-verify__row button {
+  border: none;
+  border-radius: 8px;
+  background: #1d63f0;
+  color: white;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.atp-verify__row button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.atp-verify__status {
+  font-size: 0.88rem;
+  color: #334155;
+}
+
+.atp-verify__cards {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .atp-verify__cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.atp-verify__card {
+  border: 1px solid #dbe6ff;
+  background: white;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.atp-verify__card h3 {
+  margin: 0 0 8px;
+  font-size: 0.92rem;
+  color: #1f3a68;
+}
+
+.atp-verify__card ul {
+  margin: 0;
+  padding-left: 16px;
+  color: #26364f;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.atp-verify__card p {
+  margin: 0;
+  color: #4b5f82;
+  font-size: 0.86rem;
+}
+
+.atp-verify__error {
+  margin-top: 10px;
+  color: #c1121f;
+  font-size: 0.9rem;
+}

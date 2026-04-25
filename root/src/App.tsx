@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AtprotoVerificationPanel } from './components/AtprotoVerificationPanel'
 import { EventForm } from './components/EventForm'
 import { EventFeed } from './components/EventFeed'
 import { GlassBoxApp } from './glass-box/GlassBoxApp'
@@ -37,6 +38,8 @@ function App() {
             <p style={{ color: '#666' }}>Decentralized & powered by AT Protocol</p>
           </header>
           <main>
+            <AtprotoVerificationPanel />
+            <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
             <EventForm />
             <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
             <EventFeed />
