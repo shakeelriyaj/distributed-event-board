@@ -12,8 +12,12 @@ export function createEventRecordDraft(
     $type: EVENT_RECORD_TYPE,
     title: input.title,
     description: input.description,
-    eventDate: input.eventDate,
+    startsAt: input.startsAt,
     createdAt: options.createdAt ?? new Date().toISOString(),
+  }
+
+  if (input.endsAt && input.endsAt.trim()) {
+    draft.endsAt = input.endsAt
   }
 
   if (input.location && input.location.trim()) {

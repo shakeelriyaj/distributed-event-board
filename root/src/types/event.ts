@@ -4,7 +4,8 @@ export type EventRecord = {
   $type: typeof EVENT_RECORD_TYPE
   title: string
   description: string
-  eventDate: string
+  startsAt: string
+  endsAt?: string
   location?: string
   createdAt: string
 }
@@ -12,7 +13,8 @@ export type EventRecord = {
 export type EventRecordDraftInput = {
   title: string
   description: string
-  eventDate: string
+  startsAt: string
+  endsAt?: string
   location?: string
 }
 

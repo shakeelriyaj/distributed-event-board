@@ -35,10 +35,26 @@ export function validateEventRecord(record: EventRecord): EventRecordValidationR
     errors.push(`description must be <= ${DESCRIPTION_MAX} characters.`)
   }
 
-  if (!isNonEmptyString(record.eventDate)) {
-    errors.push('eventDate is required.')
-  } else if (!isIsoDate(record.eventDate)) {
-    errors.push('eventDate must be a valid ISO datetime string.')
+  if (!isNonEmptyString(record.startsAt)) {
+    errors.push('startsAt is required.')
+  } else if (!isIsoDate(record.startsAt)) {
+    errors.push('startsAt must be a valid ISO datetime string.')
+  }
+
+  if (record.endsAt !== undefined) {
+    if (!isNonEmptyString(record.endsAt)) {
+      errors.push('endsAt must be a valid ISO datetime string when provided.')
+    } else if (!isIsoDate(record.endsAt)) {
+      errors.push('endsAt must be a valid ISO datetime string.')
+    }
+  }
+
+  if (isIsoDate(record.startsAt) && record.endsAt && isIsoDate(record.endsAt)) {
+    const start = new Date(record.startsAt)
+    const end = new Date(record.endsAt)
+    if (end <= start) {
+      errors.push('endsAt must be after startsAt.')
+    }
   }
 
   if (!isNonEmptyString(record.createdAt)) {

@@ -7,7 +7,7 @@
       "description": "A decentralized community event listing.",
       "record": {
         "type": "object",
-        "required": ["title", "description", "eventDate", "createdAt"],
+        "required": ["title", "description", "startsAt", "createdAt"],
         "properties": {
           "title": {
             "type": "string",
@@ -19,10 +19,15 @@
             "maxLength": 1000,
             "description": "Detailed event description."
           },
-          "eventDate": {
+          "startsAt": {
             "type": "string",
             "format": "datetime",
             "description": "ISO8601 start time of the event."
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "Optional ISO8601 end time of the event."
           },
           "location": {
             "type": "string",

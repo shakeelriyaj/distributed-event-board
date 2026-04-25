@@ -8,7 +8,8 @@ describe('event record validation', () => {
       {
         title: 'ATProto Hack Night',
         description: 'Bring a laptop and build custom record experiments.',
-        eventDate: '2026-06-01T18:00:00.000Z',
+        startsAt: '2026-06-01T18:00:00.000Z',
+        endsAt: '2026-06-01T20:00:00.000Z',
         location: 'Queens',
       },
       { createdAt: '2026-05-01T12:00:00.000Z' },
@@ -23,7 +24,8 @@ describe('event record validation', () => {
       {
         title: '',
         description: '',
-        eventDate: 'bad-date',
+        startsAt: 'bad-date',
+        endsAt: '2026-05-01T09:00:00.000Z',
         location: 'x'.repeat(220),
       },
       { createdAt: 'also-bad-date' },
@@ -36,10 +38,27 @@ describe('event record validation', () => {
       expect.arrayContaining([
         'title is required.',
         'description is required.',
-        'eventDate must be a valid ISO datetime string.',
+        'startsAt must be a valid ISO datetime string.',
         'createdAt must be a valid ISO datetime string.',
         'location must be <= 200 characters.',
       ]),
     )
+  })
+
+  it('rejects endsAt when not after startsAt', () => {
+    const record = createEventRecordDraft(
+      {
+        title: 'Protocol Coffee',
+        description: 'Discuss DID rotation.',
+        startsAt: '2026-06-10T12:00:00.000Z',
+        endsAt: '2026-06-10T12:00:00.000Z',
+      },
+      { createdAt: '2026-05-01T12:00:00.000Z' },
+    )
+
+    const result = validateEventRecord(record)
+    expect(result.valid).toBe(false)
+    if (result.valid) return
+    expect(result.errors).toContain('endsAt must be after startsAt.')
   })
 })
