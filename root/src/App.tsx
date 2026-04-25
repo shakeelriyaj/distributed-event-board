@@ -3,6 +3,7 @@ import { AtprotoVerificationPanel } from './components/AtprotoVerificationPanel'
 import { EventSchemaValidationPanel } from './components/EventSchemaValidationPanel'
 import { EventForm } from './components/EventForm'
 import { EventFeed } from './components/EventFeed'
+import { MyEventRecordsPanel } from './components/MyEventRecordsPanel'
 import { GlassBoxApp } from './glass-box/GlassBoxApp'
 import './glass-box/glass-box.css'
 
@@ -44,6 +45,8 @@ function App() {
             <EventSchemaValidationPanel />
             <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
             <EventForm />
+            <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
+            <MyEventRecordsPanel />
             <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
             <EventFeed />
           </main>
