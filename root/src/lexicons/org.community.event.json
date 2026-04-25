@@ -1,0 +1,41 @@
+{
+  "lexicon": 1,
+  "id": "org.community.event",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A decentralized community event listing.",
+      "record": {
+        "type": "object",
+        "required": ["title", "description", "eventDate", "createdAt"],
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Short title for the event."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "Detailed event description."
+          },
+          "eventDate": {
+            "type": "string",
+            "format": "datetime",
+            "description": "ISO8601 start time of the event."
+          },
+          "location": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Optional physical location or join link."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "ISO8601 creation time for the record."
+          }
+        }
+      }
+    }
+  }
+}
