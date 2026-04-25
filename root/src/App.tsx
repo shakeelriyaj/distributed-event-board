@@ -4,6 +4,8 @@ import { EventSchemaValidationPanel } from './components/EventSchemaValidationPa
 import { EventForm } from './components/EventForm'
 import { EventFeed } from './components/EventFeed'
 import { MyEventRecordsPanel } from './components/MyEventRecordsPanel'
+import { ProtocolProgressPanel } from './components/ProtocolProgressPanel'
+import { FutureDiscoveryCallout } from './components/FutureDiscoveryCallout'
 import { GlassBoxApp } from './glass-box/GlassBoxApp'
 import './glass-box/glass-box.css'
 
@@ -40,6 +42,8 @@ function App() {
             <p style={{ color: '#666' }}>Decentralized & powered by AT Protocol</p>
           </header>
           <main>
+            <ProtocolProgressPanel />
+            <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
             <AtprotoVerificationPanel />
             <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
             <EventSchemaValidationPanel />
@@ -47,6 +51,7 @@ function App() {
             <EventForm />
             <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
             <MyEventRecordsPanel />
+            <FutureDiscoveryCallout />
             <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
             <EventFeed />
           </main>

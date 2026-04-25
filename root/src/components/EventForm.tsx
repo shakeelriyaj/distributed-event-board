@@ -94,6 +94,10 @@ export const EventForm = () => {
   return (
     <div style={{ background: '#f9f9f9', padding: '20px', borderRadius: '12px', border: '1px solid #eaeaea' }}>
       <h3 style={{ marginTop: 0 }}>New Post</h3>
+      <p style={{ margin: '-6px 0 12px', fontSize: '12px', color: '#475569', lineHeight: 1.5 }}>
+        Real PDS path: this form uses <code style={{ fontSize: '11px' }}>createRecord</code> on your session repo,
+        then <code style={{ fontSize: '11px' }}>getRecord</code> for read-back. It is not the mock feed below.
+      </p>
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <input
           name="title"

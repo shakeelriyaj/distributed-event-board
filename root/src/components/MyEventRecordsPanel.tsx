@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import { listMyEventRecords, type ListedEventRecord } from '../lib/events/listEventRecords'
+import { SourceBadge } from './SourceBadge'
 
 function recordTitle(value: unknown): string {
   if (value && typeof value === 'object' && 'title' in value && typeof (value as { title: unknown }).title === 'string') {
@@ -51,11 +52,29 @@ export const MyEventRecordsPanel = () => {
         background: '#fafafa',
       }}
     >
-      <h3 style={{ margin: '0 0 8px', color: '#0f172a' }}>My events (this repo only)</h3>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+        <h3 style={{ margin: 0, color: '#0f172a' }}>My PDS Events</h3>
+        <SourceBadge variant="pds-list-records" />
+      </div>
       <p style={{ margin: '0 0 12px', fontSize: '12px', color: '#64748b', lineHeight: 1.45 }}>
         Lists up to 20 <code style={{ fontSize: '11px' }}>org.community.event</code> records from your
         session DID via <code style={{ fontSize: '11px' }}>com.atproto.repo.listRecords</code>. This is not
         cross-user discovery and does not use an AppView or indexer.
+      </p>
+      <p
+        style={{
+          margin: '0 0 12px',
+          padding: '10px 12px',
+          fontSize: '12px',
+          color: '#334155',
+          lineHeight: 1.5,
+          background: '#f1f5f9',
+          borderRadius: '8px',
+          border: '1px solid #e2e8f0',
+        }}
+      >
+        <strong>Architecture:</strong> listRecords only reads one repo. Cross-user discovery requires an
+        AppView/indexer.
       </p>
       <button
         type="button"

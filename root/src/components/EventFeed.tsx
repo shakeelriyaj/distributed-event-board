@@ -1,5 +1,15 @@
-import { useEffect, useState, useCallback } from 'react';
-import { useJetstream, type JetstreamEvent } from '../atproto/jetstream';
+import { useEffect, useState, useCallback } from 'react'
+import { useJetstream, type JetstreamEvent } from '../atproto/jetstream'
+import { SourceBadge } from './SourceBadge'
+
+function eventWhen(value: Record<string, unknown> | undefined): string | null {
+  if (!value) return null
+  const startsAt = value.startsAt
+  if (typeof startsAt === 'string') return startsAt
+  const eventDate = value.eventDate
+  if (typeof eventDate === 'string') return eventDate
+  return null
+}
 
 export const EventFeed = () => {
   const [events, setEvents] = useState<any[]>([]);
@@ -65,11 +75,31 @@ export const EventFeed = () => {
   }, []);
 
   return (
-    <div style={{ marginTop: '40px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ color: '#333' }}>🗓️ Live Event Feed</h2>
-        <button 
-          onClick={loadEvents} 
+    <div style={{ marginTop: '24px' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: '12px',
+          marginBottom: '12px',
+        }}
+      >
+        <div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+            <h2 style={{ margin: 0, color: '#333' }}>Demo / mock event feed</h2>
+            <SourceBadge variant="mock-feed" />
+          </div>
+          <p style={{ margin: 0, fontSize: '12px', color: '#64748b', maxWidth: '640px', lineHeight: 1.5 }}>
+            This panel is <strong>not</strong> ATProto AppView discovery. It loads a local{' '}
+            <code style={{ fontSize: '11px' }}>localhost:3000</code> JSON API and optionally merges Jetstream
+            commits for class demos. Your real persisted events live under <strong>My PDS Events</strong> above.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={loadEvents}
           style={{ padding: '5px 10px', cursor: 'pointer', borderRadius: '4px', border: '1px solid #ccc' }}
         >
           🔄 Refresh
@@ -77,9 +107,9 @@ export const EventFeed = () => {
       </div>
 
       {loading ? (
-        <p>📡 Fetching from AT Protocol...</p>
+        <p>Loading mock feed…</p>
       ) : events.length === 0 ? (
-        <p>No events found. Be the first to post!</p>
+        <p>No rows from the mock API yet (server may be offline).</p>
       ) : (
         <div style={{ display: 'grid', gap: '20px' }}>
           {events.map((evt) => (
@@ -99,7 +129,13 @@ export const EventFeed = () => {
               </p>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#888' }}>
                 <span>📍 {evt.value.location || 'Remote/TBD'}</span>
-                <span>📅 {new Date(evt.value.eventDate).toLocaleString()}</span>
+                <span>
+                  📅{' '}
+                  {(() => {
+                    const when = eventWhen(evt.value)
+                    return when ? new Date(when).toLocaleString() : '—'
+                  })()}
+                </span>
               </div>
             </div>
           ))}
