@@ -5,6 +5,7 @@ import { EventForm } from './components/EventForm'
 import { EventFeed } from './components/EventFeed'
 import { MyEventRecordsPanel } from './components/MyEventRecordsPanel'
 import { ProtocolProgressPanel } from './components/ProtocolProgressPanel'
+import { ProtocolIntentPanel } from './components/ProtocolIntentPanel'
 import { FutureDiscoveryCallout } from './components/FutureDiscoveryCallout'
 import { GlassBoxApp } from './glass-box/GlassBoxApp'
 import './glass-box/glass-box.css'
@@ -43,6 +44,8 @@ function App() {
           </header>
           <main>
             <ProtocolProgressPanel />
+            <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
+            <ProtocolIntentPanel />
             <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
             <AtprotoVerificationPanel />
             <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
