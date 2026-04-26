@@ -14,6 +14,7 @@ import {
 import { deleteEventRecordAndCleanupRecent } from '../lib/events/deleteEventRecord'
 import { readEventRecord, type ReadEventRecordResult } from '../lib/events/readEventRecord'
 import { validateEventRecord } from '../lib/events/validateEventRecord'
+import { avatarColor, avatarInitial, shortenDid } from '../eventnet/avatar'
 
 type PersistedReadBack = {
   createUri: string
@@ -26,6 +27,7 @@ export const EventForm = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [messageKind, setMessageKind] = useState<'info' | 'success' | 'danger'>('info')
   const [startsAt, setStartsAt] = useState(() =>
     new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 16),
   )
@@ -45,7 +47,14 @@ export const EventForm = () => {
   const [recentDeletingUri, setRecentDeletingUri] = useState<string | null>(null)
   const config = getAtprotoConfig()
   const session = getCurrentSessionSnapshot()
+  const handle = session?.handle ?? config.identifier ?? 'guest'
+
   const refreshRecentUris = () => setRecentUris(getRecentEventUris())
+
+  const setToast = (kind: 'info' | 'success' | 'danger', text: string) => {
+    setMessageKind(kind)
+    setMessage(text)
+  }
 
   const handleDeleteRecent = async (uri: string) => {
     const typed = window.prompt('Type DELETE to remove this record from your PDS:')
@@ -55,7 +64,7 @@ export const EventForm = () => {
     try {
       await deleteEventRecordAndCleanupRecent(uri)
       refreshRecentUris()
-      setMessage(`🗑️ Deleted record: ${uri}`)
+      setToast('info', `Deleted record: ${uri}`)
     } catch (e) {
       setRecentDeleteError(e instanceof Error ? e.message : 'Failed to delete record')
     } finally {
@@ -82,29 +91,24 @@ export const EventForm = () => {
       const draft = createEventRecordDraft(input)
       const validation = validateEventRecord(draft)
       if (!validation.valid) {
-        setMessage(`❌ Validation failed: ${validation.errors.join(' ')}`)
+        setToast('danger', `Validation failed: ${validation.errors.join(' ')}`)
         return
       }
 
       const created = await createEventRecord(draft)
       addRecentEventUri(created.uri)
       refreshRecentUris()
-      setMessage(`✅ Event Published! URI: ${created.uri} at ${new Date().toLocaleTimeString()}!`)
+      setToast('success', `Event published — ${shortenDid(created.uri, 28)}`)
 
       try {
         const parsed = parseAtUri(created.uri)
         const fromPds = await readEventRecord(created.uri)
-        setPersisted({
-          createUri: created.uri,
-          createCid: created.cid,
-          parsed,
-          fromPds,
-        })
+        setPersisted({ createUri: created.uri, createCid: created.cid, parsed, fromPds })
       } catch (err) {
         setReadBackError(err instanceof Error ? err.message : 'Read-back failed')
       }
     } catch (err) {
-      setMessage(`❌ Error: ${err instanceof Error ? err.message : 'Failed to post'}`)
+      setToast('danger', err instanceof Error ? err.message : 'Failed to post')
     } finally {
       setLoading(false)
     }
@@ -128,172 +132,166 @@ export const EventForm = () => {
   }
 
   return (
-    <div style={{ background: '#f9f9f9', padding: '20px', borderRadius: '12px', border: '1px solid #eaeaea' }}>
-      <h3 style={{ marginTop: 0 }}>New Post</h3>
-      <p style={{ margin: '-6px 0 12px', fontSize: '12px', color: '#475569', lineHeight: 1.5 }}>
-        Real PDS path: this form uses <code style={{ fontSize: '11px' }}>createRecord</code> on your session repo,
-        then <code style={{ fontSize: '11px' }}>getRecord</code> for read-back. It is not the mock feed below.
-      </p>
-      <section
-        style={{
-          marginBottom: '12px',
-          padding: '12px',
-          borderRadius: '8px',
-          border: '1px solid #fde68a',
-          background: '#fffbeb',
-          color: '#78350f',
-        }}
-      >
-        <p style={{ margin: '0 0 8px', fontSize: '12px', fontWeight: 600 }}>
-          This writes a real org.community.event record to the configured account/PDS.
-        </p>
-        <p style={{ margin: '0 0 4px', fontSize: '12px' }}>
-          <strong>Identifier:</strong> {config.identifier || '(not configured)'}
-        </p>
-        <p style={{ margin: '0 0 4px', fontSize: '12px', wordBreak: 'break-all' }}>
-          <strong>Service:</strong> {config.service}
-        </p>
-        <p style={{ margin: 0, fontSize: '12px' }}>
-          <strong>Session DID:</strong> {session?.did ?? 'Not logged in yet'}
-        </p>
-      </section>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <input
-          name="title"
-          placeholder="What's happening?"
-          required
-          style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}
-        />
-        <textarea
-          name="description"
-          placeholder="Add some details..."
-          required
-          style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc', minHeight: '80px' }}
-        />
-        <input
-          name="startsAt"
-          type="datetime-local"
-          required
-          value={startsAt}
-          onChange={(e) => setStartsAt(e.target.value)}
-          style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}
-        />
-        <input
-          name="endsAt"
-          type="datetime-local"
-          value={endsAt}
-          onChange={(e) => setEndsAt(e.target.value)}
-          style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}
-        />
-        <input
-          name="location"
-          placeholder="Location (Optional)"
-          style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}
-        />
-        <label
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            fontSize: '13px',
-            color: '#334155',
-            padding: '8px 10px',
-            border: '1px solid #e2e8f0',
-            borderRadius: '8px',
-            background: '#fff',
-          }}
-        >
+    <>
+      <section className="en-compose">
+        <div className="en-avatar" style={{ background: avatarColor(handle) }}>
+          {avatarInitial(handle)}
+        </div>
+        <form onSubmit={handleSubmit} className="en-compose__form">
           <input
-            type="checkbox"
+            name="title"
+            placeholder="What's happening?"
             required
-            checked={confirmWrite}
-            onChange={(e) => setConfirmWrite(e.target.checked)}
+            className="en-input en-input--title"
           />
-          I understand this writes to a real PDS.
-        </label>
-        <button
-          type="submit"
-          disabled={loading || !confirmWrite}
-          style={{
-            padding: '12px',
-            borderRadius: '6px',
-            border: 'none',
-            background: '#0070ff',
-            color: 'white',
-            fontWeight: 'bold',
-            cursor: loading || !confirmWrite ? 'not-allowed' : 'pointer',
-            opacity: loading || !confirmWrite ? 0.65 : 1,
-          }}
-        >
-          {loading ? 'Publishing...' : 'Post to Board'}
-        </button>
-      </form>
-      {message && <p style={{ marginTop: '10px', fontSize: '13px', color: '#555' }}>{message}</p>}
+          <textarea
+            name="description"
+            placeholder="Add details — agenda, speakers, what to bring…"
+            required
+            className="en-input en-textarea"
+          />
+          <div className="en-row">
+            <label className="en-field">
+              <span className="en-field__label">Starts</span>
+              <input
+                name="startsAt"
+                type="datetime-local"
+                required
+                value={startsAt}
+                onChange={(e) => setStartsAt(e.target.value)}
+                className="en-input"
+              />
+            </label>
+            <label className="en-field">
+              <span className="en-field__label">Ends (optional)</span>
+              <input
+                name="endsAt"
+                type="datetime-local"
+                value={endsAt}
+                onChange={(e) => setEndsAt(e.target.value)}
+                className="en-input"
+              />
+            </label>
+            <label className="en-field" style={{ flex: '1 1 100%' }}>
+              <span className="en-field__label">Location (optional)</span>
+              <input name="location" placeholder="Brooklyn Public Library" className="en-input" />
+            </label>
+          </div>
 
-      <section
-        style={{
-          marginTop: '16px',
-          padding: '14px',
-          borderRadius: '10px',
-          border: '1px solid #e5e7eb',
-          background: '#fff',
-        }}
-      >
-        <h4 style={{ margin: '0 0 8px', color: '#0f172a' }}>Recent Local Writes</h4>
-        <p style={{ margin: '0 0 10px', fontSize: '12px', color: '#64748b', lineHeight: 1.45 }}>
-          Browser-local convenience list of recently created AT URIs. This is not discovery.
+          <label className="en-checkbox">
+            <input
+              type="checkbox"
+              required
+              checked={confirmWrite}
+              onChange={(e) => setConfirmWrite(e.target.checked)}
+            />
+            <span>
+              I understand this writes a real <code>org.community.event</code> record to{' '}
+              <strong>{config.identifier || 'the configured account'}</strong>.
+            </span>
+          </label>
+
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ fontSize: 12, color: 'var(--en-text-soft)' }}>
+              PDS: {config.service.replace(/^https?:\/\//, '')} · DID:{' '}
+              {session?.did ? shortenDid(session.did, 14) : 'no session yet'}
+            </div>
+            <button
+              type="submit"
+              disabled={loading || !confirmWrite}
+              className="en-btn en-btn--primary"
+            >
+              {loading ? 'Publishing…' : 'Post'}
+            </button>
+          </div>
+          {message ? (
+            <div
+              className={
+                'en-toast ' +
+                (messageKind === 'success'
+                  ? 'en-toast--success'
+                  : messageKind === 'danger'
+                    ? 'en-toast--danger'
+                    : '')
+              }
+            >
+              {message}
+            </div>
+          ) : null}
+        </form>
+      </section>
+
+      <section className="en-section">
+        <div className="en-section__head">
+          <h2 className="en-section__title">Recent local writes</h2>
+          <span className="en-chip en-chip--neutral">browser-only</span>
+        </div>
+        <p className="en-section__sub">
+          Convenience list of AT URIs you've created in this browser. Not discovery.
         </p>
         {recentUris.length === 0 ? (
-          <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>No recent local writes saved yet.</p>
+          <div className="en-empty" style={{ padding: '20px 0' }}>
+            <div className="en-empty__sub">No local writes yet — publish above to see them here.</div>
+          </div>
         ) : (
-          <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: '8px' }}>
+          <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: 8 }}>
             {recentUris.map((uri) => (
-              <li
-                key={uri}
-                style={{
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '8px',
-                  padding: '8px',
-                  background: '#f8fafc',
-                }}
-              >
-                <div style={{ fontSize: '12px', color: '#334155', wordBreak: 'break-all', marginBottom: '6px' }}>{uri}</div>
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              <li key={uri} className="en-panel">
+                <div
+                  style={{
+                    fontFamily: 'var(--en-font-mono)',
+                    fontSize: 12,
+                    color: 'var(--en-text)',
+                    wordBreak: 'break-all',
+                    marginBottom: 8,
+                  }}
+                >
+                  {uri}
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   <button
                     type="button"
+                    className="en-btn en-btn--sm"
                     onClick={async () => {
                       try {
                         await navigator.clipboard.writeText(uri)
                       } catch {
-                        // Keep panel simple; ignore clipboard failures.
+                        // ignore
                       }
                     }}
-                    style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff' }}
                   >
                     Copy URI
                   </button>
                   <button
                     type="button"
+                    className="en-btn en-btn--sm"
                     onClick={() => navigate(`/events/${encodeURIComponent(uri)}`)}
-                    style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff' }}
                   >
-                    Open detail
+                    Open
                   </button>
                   <button
                     type="button"
+                    className="en-btn en-btn--sm"
                     onClick={() => {
                       removeRecentEventUri(uri)
                       refreshRecentUris()
                     }}
-                    style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #fecaca', background: '#fff1f2' }}
                   >
-                    Remove
+                    Forget
                   </button>
                   <button
                     type="button"
+                    className="en-btn en-btn--sm en-btn--danger"
                     onClick={() => handleDeleteRecent(uri)}
                     disabled={recentDeletingUri === uri}
-                    style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #fecaca', background: '#fff1f2' }}
                   >
                     {recentDeletingUri === uri ? 'Deleting…' : 'Delete from PDS'}
                   </button>
@@ -303,258 +301,165 @@ export const EventForm = () => {
           </ul>
         )}
         {recentDeleteError && (
-          <p style={{ marginTop: '8px', fontSize: '13px', color: '#b91c1c' }} role="alert">
+          <div className="en-toast en-toast--danger" role="alert">
             Delete error: {recentDeleteError}
-          </p>
+          </div>
         )}
-        <div style={{ marginTop: '10px' }}>
-          <button
-            type="button"
-            onClick={() => {
-              clearRecentEventUris()
-              refreshRecentUris()
-            }}
-            disabled={recentUris.length === 0}
-            style={{
-              padding: '6px 10px',
-              borderRadius: '6px',
-              border: '1px solid #cbd5e1',
-              background: '#fff',
-              cursor: recentUris.length === 0 ? 'not-allowed' : 'pointer',
-              opacity: recentUris.length === 0 ? 0.6 : 1,
-            }}
-          >
-            Clear all
-          </button>
-        </div>
+        {recentUris.length > 0 ? (
+          <div style={{ marginTop: 10 }}>
+            <button
+              type="button"
+              className="en-btn en-btn--sm"
+              onClick={() => {
+                clearRecentEventUris()
+                refreshRecentUris()
+              }}
+            >
+              Clear all
+            </button>
+          </div>
+        ) : null}
       </section>
 
       {persisted && (
-        <section
-          style={{
-            marginTop: '18px',
-            padding: '14px',
-            borderRadius: '10px',
-            border: '1px solid #dbeafe',
-            background: '#f0f7ff',
-          }}
-        >
-          <h4 style={{ margin: '0 0 8px', color: '#0f172a' }}>Read back from PDS (known AT URI)</h4>
-          <p style={{ margin: '0 0 10px', fontSize: '12px', color: '#475569', lineHeight: 1.45 }}>
-            {"This proves the record exists in the user's PDS. Discovery requires an AppView/indexer, which comes later."}
+        <section className="en-section">
+          <div className="en-section__head">
+            <h2 className="en-section__title">Read-back from PDS</h2>
+            <span className="en-chip en-chip--success">getRecord OK</span>
+          </div>
+          <p className="en-section__sub">
+            Confirms the record exists in the user's PDS. Discovery still requires an AppView.
           </p>
-          <dl style={{ margin: 0, fontSize: '13px', color: '#334155' }}>
-            <div style={{ marginBottom: '6px' }}>
-              <dt style={{ fontWeight: 600 }}>AT URI</dt>
-              <dd style={{ margin: 0, wordBreak: 'break-all' }}>{persisted.createUri}</dd>
-            </div>
-            <div style={{ marginBottom: '6px' }}>
-              <dt style={{ fontWeight: 600 }}>CID (createRecord)</dt>
-              <dd style={{ margin: 0, wordBreak: 'break-all' }}>{persisted.createCid}</dd>
-            </div>
-            <div style={{ marginBottom: '6px' }}>
-              <dt style={{ fontWeight: 600 }}>CID (getRecord)</dt>
-              <dd style={{ margin: 0, wordBreak: 'break-all' }}>{persisted.fromPds.cid}</dd>
-            </div>
-            <div style={{ marginBottom: '6px' }}>
-              <dt style={{ fontWeight: 600 }}>Repo (DID)</dt>
-              <dd style={{ margin: 0 }}>{persisted.parsed.repo}</dd>
-            </div>
-            <div style={{ marginBottom: '6px' }}>
-              <dt style={{ fontWeight: 600 }}>Collection</dt>
-              <dd style={{ margin: 0 }}>{persisted.parsed.collection}</dd>
-            </div>
-            <div style={{ marginBottom: '6px' }}>
-              <dt style={{ fontWeight: 600 }}>rkey</dt>
-              <dd style={{ margin: 0 }}>{persisted.parsed.rkey}</dd>
-            </div>
-          </dl>
-          <p style={{ margin: '10px 0 4px', fontWeight: 600, fontSize: '13px' }}>Raw stored record (value)</p>
-          <pre
-            style={{
-              margin: 0,
-              padding: '10px',
-              borderRadius: '8px',
-              background: '#fff',
-              border: '1px solid #e2e8f0',
-              fontSize: '12px',
-              overflow: 'auto',
-              maxHeight: '220px',
-            }}
-          >
-            {JSON.stringify(persisted.fromPds.value, null, 2)}
-          </pre>
+          <div className="en-panel en-panel--info">
+            <dl className="en-dl">
+              <dt>AT URI</dt>
+              <dd>{persisted.createUri}</dd>
+              <dt>CID (createRecord)</dt>
+              <dd>{persisted.createCid}</dd>
+              <dt>CID (getRecord)</dt>
+              <dd>{persisted.fromPds.cid}</dd>
+              <dt>Repo (DID)</dt>
+              <dd>{persisted.parsed.repo}</dd>
+              <dt>Collection</dt>
+              <dd>{persisted.parsed.collection}</dd>
+              <dt>rkey</dt>
+              <dd>{persisted.parsed.rkey}</dd>
+            </dl>
+          </div>
+          <h4 style={{ margin: '12px 0 6px', fontSize: 13, color: 'var(--en-text-soft)' }}>
+            Raw stored record
+          </h4>
+          <pre className="en-pre">{JSON.stringify(persisted.fromPds.value, null, 2)}</pre>
         </section>
       )}
 
       {persisted && (
-        <section
-          style={{
-            marginTop: '14px',
-            padding: '14px',
-            borderRadius: '10px',
-            border: '1px solid #e2e8f0',
-            background: '#fff',
-          }}
-        >
-          <h4 style={{ margin: '0 0 8px', color: '#0f172a' }}>Protocol lifecycle timeline</h4>
-          <p style={{ margin: '0 0 10px', fontSize: '12px', color: '#64748b', lineHeight: 1.45 }}>
-            End-to-end path for this event record after submit.
-          </p>
-          <ol style={{ margin: 0, paddingLeft: '20px', display: 'grid', gap: '8px' }}>
+        <section className="en-section">
+          <div className="en-section__head">
+            <h2 className="en-section__title">Protocol lifecycle timeline</h2>
+          </div>
+          <ol className="en-progress">
             <li>
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px', background: '#f8fafc' }}>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: '#166534' }}>DONE - Draft built</div>
-                <div style={{ fontSize: '12px', color: '#475569' }}>Draft record assembled from form input.</div>
-              </div>
+              <span className="en-progress__check en-progress__check--done">✓</span>
+              <span><strong>Draft built</strong> — assembled from form input.</span>
             </li>
             <li>
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px', background: '#f8fafc' }}>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: '#166534' }}>
-                  DONE - Validated against org.community.event
-                </div>
-                <div style={{ fontSize: '12px', color: '#475569' }}>
-                  Collection: <code style={{ fontSize: '11px' }}>{persisted.parsed.collection}</code>
-                </div>
-              </div>
+              <span className="en-progress__check en-progress__check--done">✓</span>
+              <span>
+                <strong>Validated against</strong> <code>{persisted.parsed.collection}</code>
+              </span>
             </li>
             <li>
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px', background: '#f8fafc' }}>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: '#166534' }}>DONE - createRecord sent to PDS</div>
-                <div style={{ fontSize: '12px', color: '#475569' }}>
-                  Repo DID: <code style={{ fontSize: '11px' }}>{persisted.parsed.repo}</code>
-                </div>
-              </div>
+              <span className="en-progress__check en-progress__check--done">✓</span>
+              <span>
+                <strong>createRecord</strong> sent to PDS · repo{' '}
+                <code>{shortenDid(persisted.parsed.repo, 18)}</code>
+              </span>
             </li>
             <li>
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px', background: '#f8fafc' }}>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: '#166534' }}>DONE - URI + CID returned</div>
-                <div style={{ fontSize: '12px', color: '#475569', wordBreak: 'break-all' }}>
-                  URI: <code style={{ fontSize: '11px' }}>{persisted.createUri}</code>
-                </div>
-                <div style={{ fontSize: '12px', color: '#475569', wordBreak: 'break-all' }}>
-                  CID: <code style={{ fontSize: '11px' }}>{persisted.createCid}</code>
-                </div>
-              </div>
+              <span className="en-progress__check en-progress__check--done">✓</span>
+              <span>
+                <strong>URI + CID returned</strong> · {shortenDid(persisted.createCid, 14)}
+              </span>
             </li>
             <li>
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px', background: '#f8fafc' }}>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: '#166534' }}>DONE - getRecord read back from PDS</div>
-                <div style={{ fontSize: '12px', color: '#475569', wordBreak: 'break-all' }}>
-                  CID (getRecord): <code style={{ fontSize: '11px' }}>{persisted.fromPds.cid}</code>
-                </div>
-              </div>
+              <span className="en-progress__check en-progress__check--done">✓</span>
+              <span><strong>getRecord</strong> read back from PDS · CID match.</span>
             </li>
             <li>
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px', background: '#f8fafc' }}>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: '#166534' }}>
-                  DONE - Record can appear in My PDS Events via listRecords
-                </div>
-                <div style={{ fontSize: '12px', color: '#475569' }}>
-                  Use the My PDS Events panel to list this repo collection after publish.
-                </div>
-              </div>
+              <span className="en-progress__check en-progress__check--done">✓</span>
+              <span><strong>listRecords</strong> can surface this record from your repo.</span>
             </li>
             <li>
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px', background: '#f8fafc' }}>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: '#92400e' }}>
-                  FUTURE - Cross-user discovery requires AppView/indexer
-                </div>
-                <div style={{ fontSize: '12px', color: '#475569' }}>
-                  Not implemented in this app yet; current flow is write/read/list for known repo(s).
-                </div>
-              </div>
+              <span className="en-progress__check en-progress__check--pending">·</span>
+              <span style={{ color: 'var(--en-text-soft)' }}>
+                Cross-user discovery requires an AppView/indexer (future).
+              </span>
             </li>
           </ol>
         </section>
       )}
 
       {readBackError && (
-        <p style={{ marginTop: '10px', fontSize: '13px', color: '#b91c1c' }}>Read-back error: {readBackError}</p>
+        <div className="en-section">
+          <div className="en-toast en-toast--danger">Read-back error: {readBackError}</div>
+        </div>
       )}
 
-      <section
-        style={{
-          marginTop: '22px',
-          padding: '14px',
-          borderRadius: '10px',
-          border: '1px solid #e5e7eb',
-          background: '#fff',
-        }}
-      >
-        <h4 style={{ margin: '0 0 8px', color: '#0f172a' }}>Read by known AT URI (manual)</h4>
-        <p style={{ margin: '0 0 10px', fontSize: '12px', color: '#64748b', lineHeight: 1.45 }}>
-          Paste an AT URI you already know (for example from a successful create). This is not search or discovery.
+      <section className="en-section">
+        <div className="en-section__head">
+          <h2 className="en-section__title">Read by known AT URI</h2>
+          <span className="en-chip en-chip--neutral">manual</span>
+        </div>
+        <p className="en-section__sub">
+          Paste an AT URI you already know. This is not search or discovery.
         </p>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <input
             type="text"
             value={manualUri}
             onChange={(e) => setManualUri(e.target.value)}
             placeholder="at://did:plc:…/org.community.event/…"
-            style={{ flex: '1 1 240px', padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }}
+            className="en-input"
+            style={{ flex: '1 1 280px', minWidth: 0 }}
           />
           <button
             type="button"
             onClick={handleManualRead}
             disabled={manualLoading || !manualUri.trim()}
-            style={{
-              padding: '8px 12px',
-              borderRadius: '6px',
-              border: 'none',
-              background: '#0f172a',
-              color: '#fff',
-              cursor: manualLoading ? 'not-allowed' : 'pointer',
-            }}
+            className="en-btn en-btn--primary"
           >
-            {manualLoading ? 'Reading…' : 'Read Record'}
+            {manualLoading ? 'Reading…' : 'Read'}
           </button>
         </div>
         {manualError && (
-          <p style={{ marginTop: '10px', fontSize: '13px', color: '#b91c1c' }}>Error: {manualError}</p>
+          <div className="en-toast en-toast--danger" style={{ marginTop: 10 }}>
+            {manualError}
+          </div>
         )}
         {manualResult && manualParsed && (
-          <div style={{ marginTop: '12px' }}>
-            <dl style={{ margin: 0, fontSize: '13px', color: '#334155' }}>
-              <div style={{ marginBottom: '6px' }}>
-                <dt style={{ fontWeight: 600 }}>AT URI</dt>
-                <dd style={{ margin: 0, wordBreak: 'break-all' }}>{manualUri.trim()}</dd>
-              </div>
-              <div style={{ marginBottom: '6px' }}>
-                <dt style={{ fontWeight: 600 }}>CID (getRecord)</dt>
-                <dd style={{ margin: 0, wordBreak: 'break-all' }}>{manualResult.cid}</dd>
-              </div>
-              <div style={{ marginBottom: '6px' }}>
-                <dt style={{ fontWeight: 600 }}>Repo</dt>
-                <dd style={{ margin: 0 }}>{manualParsed.repo}</dd>
-              </div>
-              <div style={{ marginBottom: '6px' }}>
-                <dt style={{ fontWeight: 600 }}>Collection</dt>
-                <dd style={{ margin: 0 }}>{manualParsed.collection}</dd>
-              </div>
-              <div style={{ marginBottom: '6px' }}>
-                <dt style={{ fontWeight: 600 }}>rkey</dt>
-                <dd style={{ margin: 0 }}>{manualParsed.rkey}</dd>
-              </div>
-            </dl>
-            <p style={{ margin: '10px 0 4px', fontWeight: 600, fontSize: '13px' }}>Raw stored record (value)</p>
-            <pre
-              style={{
-                margin: 0,
-                padding: '10px',
-                borderRadius: '8px',
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                fontSize: '12px',
-                overflow: 'auto',
-                maxHeight: '220px',
-              }}
-            >
-              {JSON.stringify(manualResult.value, null, 2)}
-            </pre>
+          <div style={{ marginTop: 12 }}>
+            <div className="en-panel">
+              <dl className="en-dl">
+                <dt>AT URI</dt>
+                <dd>{manualUri.trim()}</dd>
+                <dt>CID</dt>
+                <dd>{manualResult.cid}</dd>
+                <dt>Repo</dt>
+                <dd>{manualParsed.repo}</dd>
+                <dt>Collection</dt>
+                <dd>{manualParsed.collection}</dd>
+                <dt>rkey</dt>
+                <dd>{manualParsed.rkey}</dd>
+              </dl>
+            </div>
+            <h4 style={{ margin: '12px 0 6px', fontSize: 13, color: 'var(--en-text-soft)' }}>
+              Raw stored record
+            </h4>
+            <pre className="en-pre">{JSON.stringify(manualResult.value, null, 2)}</pre>
           </div>
         )}
       </section>
-    </div>
+    </>
   )
 }

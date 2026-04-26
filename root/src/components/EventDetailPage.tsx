@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom'
 import { parseAtUri } from '../lib/events/atUri'
 import { readEventRecord, type ReadEventRecordResult } from '../lib/events/readEventRecord'
 import { SourceBadge } from './SourceBadge'
+import { avatarColor, avatarInitial, relativeTime, shortenDid } from '../eventnet/avatar'
 
 type ViewMode = 'user' | 'protocol'
 
@@ -11,6 +12,19 @@ function asStringField(value: unknown, key: string): string | null {
   if (!value || typeof value !== 'object') return null
   const maybe = (value as Record<string, unknown>)[key]
   return typeof maybe === 'string' ? maybe : null
+}
+
+function formatExact(value?: string | null): string {
+  if (!value) return 'Not set'
+  const d = new Date(value)
+  if (Number.isNaN(d.valueOf())) return value
+  return d.toLocaleString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
 }
 
 export function EventDetailPage() {
@@ -46,19 +60,13 @@ export function EventDetailPage() {
 
     readEventRecord(decodedUri)
       .then((result) => {
-        if (!cancelled) {
-          setRecord(result)
-        }
+        if (!cancelled) setRecord(result)
       })
       .catch((e) => {
-        if (!cancelled) {
-          setError(e instanceof Error ? e.message : 'Failed to read record')
-        }
+        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to read record')
       })
       .finally(() => {
-        if (!cancelled) {
-          setLoading(false)
-        }
+        if (!cancelled) setLoading(false)
       })
 
     return () => {
@@ -80,6 +88,7 @@ export function EventDetailPage() {
   const startsAt = asStringField(record?.value, 'startsAt')
   const endsAt = asStringField(record?.value, 'endsAt')
   const location = asStringField(record?.value, 'location')
+  const host = parsed?.repo ?? null
 
   const copyValue = async (
     value: string | undefined,
@@ -98,146 +107,116 @@ export function EventDetailPage() {
   }
 
   return (
-    <section style={{ padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#fff' }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', marginBottom: '8px' }}>
-        <h2 style={{ margin: 0, color: '#0f172a' }}>Event detail</h2>
-        <SourceBadge variant="pds-list-records" />
-      </div>
-      <p style={{ margin: '0 0 12px', fontSize: '12px', color: '#64748b' }}>
-        Read by known AT URI, not discovery.
-      </p>
-
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-        <button
-          type="button"
-          onClick={() => setMode('user')}
-          style={{
-            padding: '6px 10px',
-            borderRadius: '6px',
-            border: mode === 'user' ? '1px solid #3b82f6' : '1px solid #cbd5e1',
-            background: mode === 'user' ? '#eff6ff' : '#f8fafc',
-            color: '#0f172a',
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
-          User View
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode('protocol')}
-          style={{
-            padding: '6px 10px',
-            borderRadius: '6px',
-            border: mode === 'protocol' ? '1px solid #3b82f6' : '1px solid #cbd5e1',
-            background: mode === 'protocol' ? '#eff6ff' : '#f8fafc',
-            color: '#0f172a',
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
-          Protocol View
-        </button>
-      </div>
-
-      {loading ? (
-        <p style={{ margin: 0, color: '#475569' }}>Loading record from PDS…</p>
-      ) : null}
-
-      {!loading && error ? (
-        <p role="alert" style={{ margin: 0, color: '#b91c1c' }}>
-          {error}
-        </p>
-      ) : null}
-
-      {!loading && !error && record && mode === 'user' ? (
-        <div style={{ display: 'grid', gap: '8px', color: '#334155' }}>
-          <h3 style={{ margin: '2px 0 4px', color: '#0f172a' }}>{title}</h3>
-          {description ? <p style={{ margin: 0 }}>{description}</p> : null}
-          <p style={{ margin: 0 }}>
-            <strong>Starts:</strong> {startsAt ?? 'Not set'}
-          </p>
-          {endsAt ? (
-            <p style={{ margin: 0 }}>
-              <strong>Ends:</strong> {endsAt}
-            </p>
-          ) : null}
-          {location ? (
-            <p style={{ margin: 0 }}>
-              <strong>Location:</strong> {location}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
-
-      {!loading && !error && record && mode === 'protocol' ? (
-        <div>
-          <div style={{ display: 'grid', gap: '6px', color: '#334155', fontSize: '13px' }}>
-            <p style={{ margin: 0, wordBreak: 'break-all' }}>
-              <strong>AT URI:</strong> {record.uri}
-            </p>
-            <p style={{ margin: 0, wordBreak: 'break-all' }}>
-              <strong>CID:</strong> {record.cid}
-            </p>
-            <p style={{ margin: 0 }}>
-              <strong>Repo DID:</strong> {parsed?.repo ?? 'Unknown'}
-            </p>
-            <p style={{ margin: 0 }}>
-              <strong>Collection:</strong> {parsed?.collection ?? 'Unknown'}
-            </p>
-            <p style={{ margin: 0 }}>
-              <strong>rkey:</strong> {parsed?.rkey ?? 'Unknown'}
-            </p>
+    <article>
+      <section className="en-section">
+        {loading ? (
+          <div className="en-empty">
+            <div className="en-empty__sub">Loading record from PDS…</div>
           </div>
-          <div style={{ marginTop: '10px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              onClick={() => copyValue(record.uri, setCopyUriStatus, 'Copy URI')}
-              style={{
-                padding: '6px 10px',
-                borderRadius: '6px',
-                border: '1px solid #cbd5e1',
-                background: '#f8fafc',
-                color: '#0f172a',
-                cursor: 'pointer',
-                fontSize: '12px',
-              }}
-            >
-              {copyUriStatus}
-            </button>
-            <button
-              type="button"
-              onClick={() => copyValue(record.cid, setCopyCidStatus, 'Copy CID')}
-              style={{
-                padding: '6px 10px',
-                borderRadius: '6px',
-                border: '1px solid #cbd5e1',
-                background: '#f8fafc',
-                color: '#0f172a',
-                cursor: 'pointer',
-                fontSize: '12px',
-              }}
-            >
-              {copyCidStatus}
-            </button>
-          </div>
-          <p style={{ margin: '12px 0 6px', fontWeight: 600, color: '#0f172a' }}>Raw stored JSON</p>
-          <pre
-            style={{
-              margin: 0,
-              padding: '10px',
-              borderRadius: '8px',
-              border: '1px solid #e2e8f0',
-              background: '#f8fafc',
-              fontSize: '12px',
-              overflow: 'auto',
-              maxHeight: '280px',
-            }}
-          >
-            {JSON.stringify(record.value, null, 2)}
-          </pre>
-        </div>
-      ) : null}
-    </section>
+        ) : error ? (
+          <div className="en-toast en-toast--danger" role="alert">{error}</div>
+        ) : record ? (
+          <>
+            <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+              <div className="en-avatar en-avatar--lg" style={{ background: avatarColor(host || title) }}>
+                {avatarInitial(host || title)}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="en-post__head">
+                  <span className="en-post__handle">{host ? shortenDid(host, 18) : 'Unknown'}</span>
+                  {startsAt ? (
+                    <>
+                      <span className="en-post__dot">·</span>
+                      <span className="en-post__meta">{relativeTime(startsAt)}</span>
+                    </>
+                  ) : null}
+                  <span className="en-post__dot">·</span>
+                  <SourceBadge variant="pds-list-records" />
+                </div>
+                <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.4px', margin: '6px 0 8px' }}>
+                  {title}
+                </h1>
+                <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+                  <button
+                    type="button"
+                    onClick={() => setMode('user')}
+                    className={'en-btn en-btn--sm ' + (mode === 'user' ? 'en-btn--primary' : '')}
+                  >
+                    Reader
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMode('protocol')}
+                    className={'en-btn en-btn--sm ' + (mode === 'protocol' ? 'en-btn--primary' : '')}
+                  >
+                    Protocol
+                  </button>
+                </div>
+
+                {mode === 'user' ? (
+                  <div className="en-stack">
+                    {description ? (
+                      <p style={{ fontSize: 15, lineHeight: 1.55, color: 'var(--en-text)', whiteSpace: 'pre-wrap' }}>
+                        {description}
+                      </p>
+                    ) : null}
+                    <div className="en-meta-row">
+                      <span>
+                        <span className="en-meta-row__key">When</span> {formatExact(startsAt)}
+                      </span>
+                      {endsAt ? (
+                        <span>
+                          <span className="en-meta-row__key">Ends</span> {formatExact(endsAt)}
+                        </span>
+                      ) : null}
+                      {location ? (
+                        <span>
+                          <span className="en-meta-row__key">Where</span> {location}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="en-stack">
+                    <div className="en-panel">
+                      <dl className="en-dl">
+                        <dt>AT URI</dt>
+                        <dd>{record.uri}</dd>
+                        <dt>CID</dt>
+                        <dd>{record.cid}</dd>
+                        <dt>Repo DID</dt>
+                        <dd>{parsed?.repo ?? 'Unknown'}</dd>
+                        <dt>Collection</dt>
+                        <dd>{parsed?.collection ?? 'Unknown'}</dd>
+                        <dt>rkey</dt>
+                        <dd>{parsed?.rkey ?? 'Unknown'}</dd>
+                      </dl>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        className="en-btn en-btn--sm"
+                        onClick={() => copyValue(record.uri, setCopyUriStatus, 'Copy URI')}
+                      >
+                        {copyUriStatus}
+                      </button>
+                      <button
+                        type="button"
+                        className="en-btn en-btn--sm"
+                        onClick={() => copyValue(record.cid, setCopyCidStatus, 'Copy CID')}
+                      >
+                        {copyCidStatus}
+                      </button>
+                    </div>
+                    <h4 style={{ margin: '4px 0', fontSize: 13, color: 'var(--en-text-soft)' }}>Raw stored JSON</h4>
+                    <pre className="en-pre">{JSON.stringify(record.value, null, 2)}</pre>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        ) : null}
+      </section>
+    </article>
   )
 }

@@ -1,8 +1,8 @@
 import { useCallback, useState } from 'react'
 import { deleteEventRecordAndCleanupRecent } from '../lib/events/deleteEventRecord'
 import { listMyEventRecords, type ListedEventRecord } from '../lib/events/listEventRecords'
-import { SourceBadge } from './SourceBadge'
 import { EventCard } from './EventCard'
+import { shortenDid } from '../eventnet/avatar'
 
 function recordTitle(value: unknown): string {
   if (value && typeof value === 'object' && 'title' in value && typeof (value as { title: unknown }).title === 'string') {
@@ -44,6 +44,7 @@ export const MyEventRecordsPanel = () => {
   const [limit, setLimit] = useState<10 | 20 | 50>(20)
   const [deletingUri, setDeletingUri] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [loaded, setLoaded] = useState(false)
 
   const mergeUniqueByUri = (incoming: ListedEventRecord[]) => {
     const seen = new Set<string>()
@@ -63,6 +64,7 @@ export const MyEventRecordsPanel = () => {
       setRepoDid(out.repoDid)
       setRecords(out.records)
       setCursor(out.cursor)
+      setLoaded(true)
     } catch (e) {
       setRepoDid(null)
       setRecords([])
@@ -106,153 +108,86 @@ export const MyEventRecordsPanel = () => {
   }, [])
 
   return (
-    <section
-      style={{
-        marginTop: '22px',
-        padding: '14px',
-        borderRadius: '10px',
-        border: '1px solid #e2e8f0',
-        background: '#fafafa',
-      }}
-    >
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-        <h3 style={{ margin: 0, color: '#0f172a' }}>My PDS Events</h3>
-        <SourceBadge variant="pds-list-records" />
-      </div>
-      <p style={{ margin: '0 0 12px', fontSize: '12px', color: '#64748b', lineHeight: 1.45 }}>
-        Lists <code style={{ fontSize: '11px' }}>org.community.event</code> records from your
-        session DID via <code style={{ fontSize: '11px' }}>com.atproto.repo.listRecords</code>. This is not
-        cross-user discovery and does not use an AppView or indexer.
-      </p>
-      <p
-        style={{
-          margin: '0 0 12px',
-          padding: '10px 12px',
-          fontSize: '12px',
-          color: '#334155',
-          lineHeight: 1.5,
-          background: '#f1f5f9',
-          borderRadius: '8px',
-          border: '1px solid #e2e8f0',
-        }}
-      >
-        <strong>Architecture:</strong> listRecords only reads one repo. Cross-user discovery requires an
-        AppView/indexer.
-      </p>
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <label style={{ fontSize: '12px', color: '#475569' }}>
-          Limit:{' '}
-          <select
-            value={limit}
-            onChange={(e) => setLimit(Number(e.target.value) as 10 | 20 | 50)}
-            style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff' }}
-          >
-            <option value={10}>10</option>
-            <option value={20}>20</option>
-            <option value={50}>50</option>
-          </select>
-        </label>
-        <button
-          type="button"
-          onClick={load}
-          disabled={loading}
-          style={{
-            padding: '8px 14px',
-            borderRadius: '6px',
-            border: 'none',
-            background: '#0070ff',
-            color: '#fff',
-            fontWeight: 600,
-            cursor: loading ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {loading ? 'Loading…' : 'Refresh'}
-        </button>
-      </div>
-
-      {error && (
-        <p style={{ marginTop: '12px', fontSize: '13px', color: '#b91c1c' }} role="alert">
-          {error}
+    <>
+      <section className="en-section">
+        <div className="en-section__head">
+          <h2 className="en-section__title">My PDS events</h2>
+          <span className="en-srcbadge en-srcbadge--pds">PDS · listRecords</span>
+        </div>
+        <p className="en-section__sub">
+          Records from your session DID via <code>com.atproto.repo.listRecords</code>. One repo, no AppView.
         </p>
-      )}
-      {deleteError && (
-        <p style={{ marginTop: '8px', fontSize: '13px', color: '#b91c1c' }} role="alert">
-          Delete error: {deleteError}
-        </p>
-      )}
-
-      {repoDid !== null && !error && (
-        <div style={{ marginTop: '14px' }}>
-          <p style={{ margin: '0 0 8px', fontSize: '12px', color: '#475569' }}>
-            <strong>Repo:</strong> <span style={{ wordBreak: 'break-all' }}>{repoDid}</span>
-          </p>
-          <p style={{ margin: '0 0 8px', fontSize: '12px', color: '#475569' }}>
-            <strong>Count:</strong> {records.length}
-          </p>
-          {records.length === 0 ? (
-            <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>No event records in this collection.</p>
-          ) : (
-            <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {records.map((r) => {
-                const starts = recordStartsAt(r.value)
-                const location = recordLocation(r.value)
-                const rsvpCount = recordRsvpCount(r.value)
-                return (
-                  <li key={r.uri}>
-                    <EventCard
-                      title={recordTitle(r.value)}
-                      startsAt={starts}
-                      location={location}
-                      host={repoDid}
-                      rsvpCount={rsvpCount}
-                      uri={r.uri}
-                      cid={r.cid}
-                      sourceVariant="pds-list-records"
-                    />
-                    <div style={{ marginTop: '6px' }}>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(r.uri)}
-                        disabled={deletingUri === r.uri}
-                        style={{
-                          padding: '6px 10px',
-                          borderRadius: '6px',
-                          border: '1px solid #fecaca',
-                          background: '#fff1f2',
-                          color: '#9f1239',
-                          cursor: deletingUri === r.uri ? 'not-allowed' : 'pointer',
-                        }}
-                      >
-                        {deletingUri === r.uri ? 'Deleting…' : 'Delete from my PDS'}
-                      </button>
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-          {cursor ? (
-            <div style={{ marginTop: '10px' }}>
-              <button
-                type="button"
-                onClick={loadMore}
-                disabled={loading}
-                style={{
-                  padding: '7px 12px',
-                  borderRadius: '6px',
-                  border: '1px solid #cbd5e1',
-                  background: '#fff',
-                  color: '#0f172a',
-                  fontWeight: 600,
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                }}
-              >
-                {loading ? 'Loading…' : 'Load More'}
-              </button>
-            </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <label style={{ fontSize: 13, color: 'var(--en-text-soft)', display: 'flex', gap: 6, alignItems: 'center' }}>
+            Limit
+            <select
+              value={limit}
+              onChange={(e) => setLimit(Number(e.target.value) as 10 | 20 | 50)}
+              className="en-input"
+              style={{ width: 'auto', padding: '6px 8px' }}
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+            </select>
+          </label>
+          <button type="button" onClick={load} disabled={loading} className="en-btn en-btn--primary">
+            {loading ? 'Loading…' : loaded ? 'Refresh' : 'Load my events'}
+          </button>
+          {repoDid ? (
+            <span style={{ fontSize: 12, color: 'var(--en-text-soft)' }}>
+              repo · {shortenDid(repoDid, 14)} · {records.length} records
+            </span>
           ) : null}
         </div>
+        {error && <div className="en-toast en-toast--danger" role="alert" style={{ marginTop: 10 }}>{error}</div>}
+        {deleteError && <div className="en-toast en-toast--danger" role="alert" style={{ marginTop: 10 }}>{deleteError}</div>}
+      </section>
+
+      {repoDid !== null && !error && (
+        <>
+          {records.length === 0 ? (
+            <div className="en-empty">
+              <div className="en-empty__title">No records yet</div>
+              <div className="en-empty__sub">Publish your first event from the Compose page.</div>
+            </div>
+          ) : (
+            <div>
+              {records.map((r) => (
+                <div key={r.uri} style={{ position: 'relative' }}>
+                  <EventCard
+                    title={recordTitle(r.value)}
+                    startsAt={recordStartsAt(r.value)}
+                    location={recordLocation(r.value)}
+                    host={repoDid}
+                    rsvpCount={recordRsvpCount(r.value)}
+                    uri={r.uri}
+                    cid={r.cid}
+                    sourceVariant="pds-list-records"
+                  />
+                  <div style={{ padding: '0 18px 10px', marginTop: -6 }}>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(r.uri)}
+                      disabled={deletingUri === r.uri}
+                      className="en-btn en-btn--sm en-btn--danger"
+                    >
+                      {deletingUri === r.uri ? 'Deleting…' : 'Delete from my PDS'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {cursor ? (
+                <div style={{ padding: 18, textAlign: 'center' }}>
+                  <button type="button" onClick={loadMore} disabled={loading} className="en-btn">
+                    {loading ? 'Loading…' : 'Load more'}
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          )}
+        </>
       )}
-    </section>
+    </>
   )
 }

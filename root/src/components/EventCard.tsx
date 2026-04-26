@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { SourceBadge, type SourceBadgeVariant } from './SourceBadge'
+import { avatarColor, avatarInitial, relativeTime, shortenDid } from '../eventnet/avatar'
 
 export type EventCardProps = {
   title: string
@@ -14,11 +15,23 @@ export type EventCardProps = {
   sourceLabelOverride?: string
 }
 
-function formatWhen(value?: string | null): string {
+function formatExact(value?: string | null): string {
   if (!value) return 'Time not set'
-  const date = new Date(value)
-  if (Number.isNaN(date.valueOf())) return value
-  return date.toLocaleString()
+  const d = new Date(value)
+  if (Number.isNaN(d.valueOf())) return value
+  return d.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
+
+function displayHost(host?: string | null): string {
+  if (!host) return 'Unknown'
+  if (host.startsWith('did:')) return shortenDid(host, 14)
+  if (host.startsWith('@')) return host
+  return host
 }
 
 export function EventCard({
@@ -46,100 +59,81 @@ export function EventCard({
   }
 
   const encodedUri = uri ? encodeURIComponent(uri) : ''
+  const hostDisplay = displayHost(host)
+  const rel = relativeTime(startsAt)
 
   return (
-    <article
-      style={{
-        border: '1px solid #e2e8f0',
-        padding: '14px',
-        borderRadius: '10px',
-        background: '#fff',
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-        <h3 style={{ margin: 0, color: '#0f172a' }}>{title || '(untitled event)'}</h3>
-        {sourceVariant ? <SourceBadge variant={sourceVariant} labelOverride={sourceLabelOverride} /> : null}
+    <article className="en-post">
+      <div className="en-avatar" style={{ background: avatarColor(host || title) }}>
+        {avatarInitial(host || title)}
       </div>
-
-      <div style={{ marginTop: '8px', display: 'grid', gap: '4px', fontSize: '13px', color: '#334155' }}>
-        <div>
-          <strong>Time:</strong> {formatWhen(startsAt)}
+      <div style={{ minWidth: 0 }}>
+        <div className="en-post__head">
+          <span className="en-post__handle">{hostDisplay}</span>
+          {rel ? (
+            <>
+              <span className="en-post__dot">·</span>
+              <span className="en-post__meta">{rel}</span>
+            </>
+          ) : null}
+          {sourceVariant ? (
+            <>
+              <span className="en-post__dot">·</span>
+              <SourceBadge variant={sourceVariant} labelOverride={sourceLabelOverride} />
+            </>
+          ) : null}
         </div>
-        {location ? (
-          <div>
-            <strong>Location:</strong> {location}
+
+        <h3 className="en-post__title">{title || '(untitled event)'}</h3>
+
+        <div className="en-meta-row">
+          <span>
+            <span className="en-meta-row__key">When</span> {formatExact(startsAt)}
+          </span>
+          {location ? (
+            <span>
+              <span className="en-meta-row__key">Where</span> {location}
+            </span>
+          ) : null}
+          <span>
+            <span className="en-meta-row__key">RSVPs</span>{' '}
+            {typeof rsvpCount === 'number' ? rsvpCount : '—'}
+          </span>
+        </div>
+
+        {(uri || cid) ? (
+          <div className="en-uribox">
+            {uri ? (
+              <div>
+                <strong>uri</strong>
+                {uri}
+              </div>
+            ) : null}
+            {cid ? (
+              <div style={{ marginTop: 2 }}>
+                <strong>cid</strong>
+                {cid}
+              </div>
+            ) : null}
           </div>
         ) : null}
-        <div>
-          <strong>Host:</strong> {host || 'Unknown'}
-        </div>
-        <div>
-          <strong>RSVPs:</strong> {typeof rsvpCount === 'number' ? rsvpCount : 'demo'}
-        </div>
-      </div>
 
-      {uri ? (
-        <p style={{ margin: '10px 0 0', fontSize: '11px', color: '#64748b', wordBreak: 'break-all' }}>
-          <strong>AT URI:</strong> {uri}
-        </p>
-      ) : null}
-      {cid ? (
-        <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#64748b', wordBreak: 'break-all' }}>
-          <strong>CID:</strong> {cid}
-        </p>
-      ) : null}
-
-      <div style={{ marginTop: '12px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-        {uri ? (
-          <Link
-            to={`/events/${encodedUri}`}
-            style={{
-              padding: '6px 10px',
-              borderRadius: '6px',
-              border: '1px solid #cbd5e1',
-              background: '#f8fafc',
-              color: '#0f172a',
-              textDecoration: 'none',
-              fontSize: '12px',
-              fontWeight: 600,
-            }}
-          >
-            View details
-          </Link>
-        ) : (
-          <button
-            type="button"
-            disabled
-            style={{
-              padding: '6px 10px',
-              borderRadius: '6px',
-              border: '1px solid #e2e8f0',
-              background: '#f8fafc',
-              color: '#94a3b8',
-              fontSize: '12px',
-            }}
-          >
-            View details
-          </button>
-        )}
-        {uri ? (
-          <button
-            type="button"
-            onClick={onCopyUri}
-            style={{
-              padding: '6px 10px',
-              borderRadius: '6px',
-              border: '1px solid #cbd5e1',
-              background: '#fff',
-              color: '#0f172a',
-              fontSize: '12px',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            {copied ? 'Copied' : 'Copy URI'}
-          </button>
-        ) : null}
+        <div className="en-actions">
+          {uri ? (
+            <Link to={`/events/${encodedUri}`} className="en-actions__btn">
+              View details
+            </Link>
+          ) : (
+            <button type="button" disabled className="en-actions__btn">
+              View details
+            </button>
+          )}
+          {uri ? (
+            <button type="button" onClick={onCopyUri} className="en-actions__btn">
+              {copied ? 'Copied' : 'Copy URI'}
+            </button>
+          ) : null}
+        </div>
       </div>
     </article>
   )

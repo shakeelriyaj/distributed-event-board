@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useJetstream, type JetstreamEvent } from '../atproto/jetstream'
-import { SourceBadge } from './SourceBadge'
 import { EventCard } from './EventCard'
 
 function eventWhen(value: Record<string, unknown> | undefined): string | null {
@@ -43,106 +42,125 @@ function eventHost(uri: string | undefined, value: Record<string, unknown> | und
 }
 
 export const EventFeed = () => {
-  const [events, setEvents] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [events, setEvents] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [live, setLive] = useState(true)
 
   const loadEvents = async () => {
-    setLoading(true);
+    setLoading(true)
+    setError(null)
     try {
-      const response = await fetch('http://localhost:3000/api/events');
-      if (!response.ok) throw new Error('Failed to fetch global events');
-      const records = await response.json();
-      setEvents(records);
+      const response = await fetch('http://localhost:3000/api/events')
+      if (!response.ok) throw new Error('Failed to fetch global events')
+      const records = await response.json()
+      setEvents(records)
     } catch (err) {
-      console.error("Failed to load global feed:", err);
+      setError(err instanceof Error ? err.message : 'Failed to load feed')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleJetstreamEvent = useCallback((event: JetstreamEvent) => {
-    // Jetstream can send different kinds of messages (e.g. 'identity', 'account')
-    // and sometimes 'commit' might be missing in non-commit events.
-    if (event.kind !== 'commit' || !event.commit) return;
+    if (event.kind !== 'commit' || !event.commit) return
 
-    const { did, commit } = event;
-    const { operation, collection, rkey, record, cid } = commit;
-    const uri = `at://${did}/${collection}/${rkey}`;
+    const { did, commit } = event
+    const { operation, collection, rkey, record, cid } = commit
+    const uri = `at://${did}/${collection}/${rkey}`
 
-    setEvents((prevEvents) => {
+    setEvents((prev) => {
       if (operation === 'create') {
-        // Avoid duplicates if we already have it
-        if (prevEvents.some((e) => e.uri === uri)) return prevEvents;
-        
-        const newEvent = {
-          uri,
-          cid,
-          value: record,
-        };
-        // Add to the top of the feed
-        return [newEvent, ...prevEvents];
+        if (prev.some((e) => e.uri === uri)) return prev
+        return [{ uri, cid, value: record }, ...prev]
       }
-
       if (operation === 'update') {
-        return prevEvents.map((e) => 
-          e.uri === uri ? { ...e, value: record, cid } : e
-        );
+        return prev.map((e) => (e.uri === uri ? { ...e, value: record, cid } : e))
       }
-
       if (operation === 'delete') {
-        return prevEvents.filter((e) => e.uri !== uri);
+        return prev.filter((e) => e.uri !== uri)
       }
+      return prev
+    })
+  }, [])
 
-      return prevEvents;
-    });
-  }, []);
+  useJetstream(handleJetstreamEvent)
 
-  // Listen for real-time updates via Jetstream
-  useJetstream(handleJetstreamEvent);
-
-  // Run once when the component mounts
   useEffect(() => {
-    loadEvents();
-  }, []);
+    loadEvents()
+  }, [])
 
   return (
-    <div style={{ marginTop: '24px' }}>
-      <div
+    <div>
+      <section
         style={{
           display: 'flex',
-          flexWrap: 'wrap',
+          alignItems: 'center',
           justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          gap: '12px',
-          marginBottom: '12px',
+          gap: 12,
+          padding: '14px 24px',
+          borderBottom: '1px solid var(--en-line)',
         }}
       >
-        <div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-            <h2 style={{ margin: 0, color: '#333' }}>Demo / mock event feed</h2>
-            <SourceBadge variant="mock-feed" />
-          </div>
-          <p style={{ margin: 0, fontSize: '12px', color: '#64748b', maxWidth: '640px', lineHeight: 1.5 }}>
-            This panel is <strong>not</strong> ATProto AppView discovery. It loads a local{' '}
-            <code style={{ fontSize: '11px' }}>localhost:3000</code> JSON API and optionally merges Jetstream
-            commits for class demos. Your real persisted events live under <strong>My PDS Events</strong> above.
-          </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span className={'en-livedot ' + (live ? '' : 'en-livedot--off')} aria-hidden />
+          <span
+            style={{
+              fontSize: 12,
+              fontFamily: 'var(--en-font-mono)',
+              color: 'var(--en-text-soft)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+            }}
+          >
+            {live ? 'Live · jetstream' : 'Paused'}
+          </span>
         </div>
-        <button
-          type="button"
-          onClick={loadEvents}
-          style={{ padding: '5px 10px', cursor: 'pointer', borderRadius: '4px', border: '1px solid #ccc' }}
-        >
-          🔄 Refresh
-        </button>
-      </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button
+            type="button"
+            className="en-btn en-btn--sm"
+            onClick={() => setLive((v) => !v)}
+            aria-label="Toggle live updates"
+          >
+            {live ? 'Pause' : 'Resume'}
+          </button>
+          <button type="button" className="en-btn en-btn--sm" onClick={loadEvents} disabled={loading}>
+            {loading ? 'Refreshing…' : 'Refresh'}
+          </button>
+        </div>
+      </section>
 
-      {loading ? (
-        <p>Loading mock feed…</p>
+      {error ? (
+        <div className="en-section">
+          <div className="en-toast en-toast--danger">Couldn't load mock feed: {error}</div>
+        </div>
+      ) : null}
+
+      {loading && events.length === 0 ? (
+        <div className="en-section">
+          <div className="en-stack">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="en-post">
+                <div className="en-avatar" style={{ background: '#e7eef1' }} />
+                <div style={{ width: '100%' }}>
+                  <div className="en-skeleton" style={{ width: '40%' }} />
+                  <div className="en-skeleton" style={{ width: '70%', height: 16, marginTop: 10 }} />
+                  <div className="en-skeleton" style={{ width: '90%', marginTop: 10 }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       ) : events.length === 0 ? (
-        <p>No rows from the mock API yet (server may be offline).</p>
+        <div className="en-empty">
+          <div className="en-empty__title">No events streaming yet</div>
+          <div className="en-empty__sub">
+            Posts from the org.community.event collection will appear here in real time.
+          </div>
+        </div>
       ) : (
-        <div style={{ display: 'grid', gap: '20px' }}>
+        <div>
           {events.map((evt) => (
             <EventCard
               key={evt.uri ?? `${eventTitle(evt.value)}-${eventWhen(evt.value) ?? 'na'}`}
@@ -159,5 +177,5 @@ export const EventFeed = () => {
         </div>
       )}
     </div>
-  );
-};
+  )
+}

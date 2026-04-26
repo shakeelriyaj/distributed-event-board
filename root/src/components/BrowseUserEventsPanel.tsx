@@ -5,6 +5,7 @@ import { parseAtUri } from '../lib/events/atUri'
 import { getCurrentSessionSnapshot } from '../lib/atproto/session'
 import { resolveDidToPds } from '../lib/identity/resolveDidToPds'
 import { resolveHandleToDid } from '../lib/identity/resolveHandleToDid'
+import { shortenDid } from '../eventnet/avatar'
 import type { ListedEventRecord } from '../lib/events/listEventRecords'
 
 function recordTitle(value: unknown): string {
@@ -66,72 +67,78 @@ export function BrowseUserEventsPanel() {
   }
 
   return (
-    <section
-      style={{
-        marginTop: '22px',
-        padding: '14px',
-        borderRadius: '10px',
-        border: '1px solid #e2e8f0',
-        background: '#fafafa',
-      }}
-    >
-      <h3 style={{ margin: '0 0 8px', color: '#0f172a' }}>Browse User Events (by handle)</h3>
-      <p style={{ margin: '0 0 10px', fontSize: '12px', color: '#64748b', lineHeight: 1.45 }}>
-        Reading @handle&apos;s PDS directly via AT Protocol. No central server involved. This is not a discovery feed -
-        you must know the handle.
-      </p>
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="@alice.bsky.social or did:plc:..."
-          style={{ flex: '1 1 280px', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-        />
-        <button
-          type="button"
-          onClick={onBrowse}
-          disabled={loading || !input.trim()}
-          style={{
-            padding: '8px 12px',
-            borderRadius: '6px',
-            border: 'none',
-            background: '#0f172a',
-            color: '#fff',
-            cursor: loading || !input.trim() ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {loading ? 'Browsing…' : 'Browse'}
-        </button>
-      </div>
-
-      {resolvedDid && (
-        <p style={{ margin: '10px 0 0', fontSize: '12px', color: '#475569', wordBreak: 'break-all' }}>
-          <strong>Resolved DID:</strong> {resolvedDid}
+    <>
+      <section className="en-section">
+        <div className="en-section__head">
+          <h2 className="en-section__title">Browse a user</h2>
+          <span className="en-srcbadge en-srcbadge--handle">Handle's PDS · direct</span>
+        </div>
+        <p className="en-section__sub">
+          Resolves a handle to a DID, finds their PDS, and reads org.community.event from their repo. No central server.
         </p>
-      )}
-      {resolvedPds && (
-        <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#475569', wordBreak: 'break-all' }}>
-          <strong>Resolved PDS:</strong> {resolvedPds}
-        </p>
-      )}
-
-      {error && (
-        <p style={{ marginTop: '10px', fontSize: '13px', color: '#b91c1c' }} role="alert">
-          {error}
-        </p>
-      )}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="@alice.bsky.social or did:plc:..."
+            className="en-input"
+            style={{ flex: '1 1 280px', minWidth: 0 }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') onBrowse()
+            }}
+          />
+          <button
+            type="button"
+            onClick={onBrowse}
+            disabled={loading || !input.trim()}
+            className="en-btn en-btn--primary"
+          >
+            {loading ? 'Browsing…' : 'Browse'}
+          </button>
+        </div>
+        {(resolvedDid || resolvedPds) && !error ? (
+          <div className="en-panel" style={{ marginTop: 12 }}>
+            <dl className="en-dl">
+              {resolvedHandle ? (
+                <>
+                  <dt>Handle</dt>
+                  <dd>@{resolvedHandle}</dd>
+                </>
+              ) : null}
+              {resolvedDid ? (
+                <>
+                  <dt>DID</dt>
+                  <dd>{resolvedDid}</dd>
+                </>
+              ) : null}
+              {resolvedPds ? (
+                <>
+                  <dt>PDS</dt>
+                  <dd>{resolvedPds}</dd>
+                </>
+              ) : null}
+            </dl>
+          </div>
+        ) : null}
+        {error && (
+          <div className="en-toast en-toast--danger" role="alert" style={{ marginTop: 10 }}>
+            {error}
+          </div>
+        )}
+      </section>
 
       {resolvedDid && !error && (
-        <div style={{ marginTop: '12px' }}>
+        <>
           {records.length === 0 ? (
-            <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
-              No public org.community.event records found for this repo.
-            </p>
+            <div className="en-empty">
+              <div className="en-empty__title">No events found</div>
+              <div className="en-empty__sub">No public org.community.event records in this repo.</div>
+            </div>
           ) : (
-            <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: '10px' }}>
+            <div>
               {records.map((r) => (
-                <li key={r.uri}>
+                <div key={r.uri}>
                   <EventCard
                     title={recordTitle(r.value)}
                     startsAt={recordStartsAt(r.value)}
@@ -142,24 +149,26 @@ export function BrowseUserEventsPanel() {
                     sourceVariant="handle-pds-direct"
                     sourceLabelOverride={
                       resolvedHandle
-                        ? `Source: from @${resolvedHandle}'s PDS directly`
-                        : "Source: from handle's PDS directly"
+                        ? `@${resolvedHandle}'s PDS · direct`
+                        : "Handle's PDS · direct"
                     }
                   />
-                  <CrossRepoRecordGlassBox
-                    uri={r.uri}
-                    cid={r.cid}
-                    resolvedHandle={resolvedHandle}
-                    resolvedPds={resolvedPds}
-                    sessionDid={sessionDid}
-                  />
-                </li>
+                  <div style={{ padding: '0 18px 14px', marginTop: -6 }}>
+                    <CrossRepoRecordGlassBox
+                      uri={r.uri}
+                      cid={r.cid}
+                      resolvedHandle={resolvedHandle}
+                      resolvedPds={resolvedPds}
+                      sessionDid={sessionDid}
+                    />
+                  </div>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
-        </div>
+        </>
       )}
-    </section>
+    </>
   )
 }
 
@@ -184,42 +193,28 @@ export function CrossRepoRecordGlassBox({
   const foreign = isForeignRepo(parsed.repo, sessionDid)
 
   return (
-    <div
-      style={{
-        marginTop: '8px',
-        border: foreign ? '1px solid #f59e0b' : '1px solid #dbeafe',
-        background: foreign ? '#fffbeb' : '#f8fafc',
-        borderRadius: '8px',
-        padding: '10px',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
-        <strong style={{ fontSize: '12px', color: '#0f172a' }}>Cross-repo protocol metadata</strong>
-        {foreign ? (
-          <span
-            style={{
-              fontSize: '11px',
-              fontWeight: 700,
-              borderRadius: '999px',
-              padding: '2px 8px',
-              color: '#92400e',
-              border: '1px solid #fcd34d',
-              background: '#fef3c7',
-            }}
-          >
-            Foreign repo
-          </span>
-        ) : null}
+    <div className={'en-panel ' + (foreign ? 'en-panel--warn' : '')}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+        <strong style={{ fontSize: 13 }}>Cross-repo metadata</strong>
+        {foreign ? <span className="en-chip en-chip--warn">Foreign repo</span> : null}
       </div>
-      <dl style={{ margin: 0, fontSize: '12px', color: '#334155' }}>
-        <div><dt style={{ fontWeight: 600 }}>repo DID:</dt><dd style={{ margin: 0, wordBreak: 'break-all' }}>{parsed.repo}</dd></div>
-        <div><dt style={{ fontWeight: 600 }}>handle:</dt><dd style={{ margin: 0 }}>{resolvedHandle ? `@${resolvedHandle}` : '(unknown)'}</dd></div>
-        <div><dt style={{ fontWeight: 600 }}>PDS:</dt><dd style={{ margin: 0, wordBreak: 'break-all' }}>{resolvedPds ?? '(unresolved)'}</dd></div>
-        <div><dt style={{ fontWeight: 600 }}>collection:</dt><dd style={{ margin: 0 }}>{parsed.collection}</dd></div>
-        <div><dt style={{ fontWeight: 600 }}>rkey:</dt><dd style={{ margin: 0 }}>{parsed.rkey}</dd></div>
-        <div><dt style={{ fontWeight: 600 }}>AT URI:</dt><dd style={{ margin: 0, wordBreak: 'break-all' }}>{uri}</dd></div>
-        <div><dt style={{ fontWeight: 600 }}>CID:</dt><dd style={{ margin: 0, wordBreak: 'break-all' }}>{cid}</dd></div>
-        <div><dt style={{ fontWeight: 600 }}>your session DID:</dt><dd style={{ margin: 0, wordBreak: 'break-all' }}>{sessionDid ?? '(not logged in)'}</dd></div>
+      <dl className="en-dl">
+        <dt>repo DID</dt>
+        <dd>{parsed.repo}</dd>
+        <dt>handle</dt>
+        <dd>{resolvedHandle ? `@${resolvedHandle}` : '(unknown)'}</dd>
+        <dt>PDS</dt>
+        <dd>{resolvedPds ?? '(unresolved)'}</dd>
+        <dt>collection</dt>
+        <dd>{parsed.collection}</dd>
+        <dt>rkey</dt>
+        <dd>{parsed.rkey}</dd>
+        <dt>AT URI</dt>
+        <dd>{uri}</dd>
+        <dt>CID</dt>
+        <dd>{cid}</dd>
+        <dt>your DID</dt>
+        <dd>{sessionDid ? shortenDid(sessionDid, 22) : '(not logged in)'}</dd>
       </dl>
     </div>
   )

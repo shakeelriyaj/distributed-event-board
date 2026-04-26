@@ -48,34 +48,18 @@ export function ProtocolIntentPanel() {
   const current = useMemo(() => (active ? INTENTS[active] : null), [active])
 
   return (
-    <section
-      style={{
-        padding: '16px',
-        borderRadius: '12px',
-        border: '1px solid #e2e8f0',
-        background: '#fff',
-      }}
-    >
-      <h2 style={{ margin: '0 0 8px', fontSize: '1.05rem', color: '#0f172a' }}>Protocol intent mapping</h2>
-      <p style={{ margin: '0 0 12px', fontSize: '12px', color: '#64748b', lineHeight: 1.45 }}>
-        Click an action to preview its ATProto collection and sample record shape.
+    <div>
+      <h2 style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>Protocol intents</h2>
+      <p style={{ fontSize: 13, color: 'var(--en-text-soft)', marginBottom: 14, lineHeight: 1.5 }}>
+        Preview the ATProto collection and sample record shape for each social action.
       </p>
-
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
         {(Object.keys(INTENTS) as IntentKey[]).map((key) => (
           <button
             key={key}
             type="button"
             onClick={() => setActive(key)}
-            style={{
-              padding: '8px 12px',
-              borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              background: '#f8fafc',
-              color: '#0f172a',
-              cursor: 'pointer',
-              fontWeight: 600,
-            }}
+            className={'en-btn en-btn--sm ' + (active === key ? 'en-btn--primary' : '')}
           >
             {INTENTS[key].label}
           </button>
@@ -83,55 +67,25 @@ export function ProtocolIntentPanel() {
       </div>
 
       {current && (
-        <div
-          role="dialog"
-          aria-label={`${current.label} protocol mapping`}
-          style={{
-            marginTop: '14px',
-            border: '1px solid #dbeafe',
-            borderRadius: '10px',
-            background: '#f0f7ff',
-            padding: '12px',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-            <h3 style={{ margin: 0, fontSize: '0.98rem', color: '#0f172a' }}>{current.label}</h3>
-            <button
-              type="button"
-              onClick={() => setActive(null)}
-              style={{
-                border: '1px solid #cbd5e1',
-                background: '#fff',
-                borderRadius: '6px',
-                padding: '4px 8px',
-                cursor: 'pointer',
-              }}
-            >
+        <div role="dialog" aria-label={`${current.label} mapping`} className="en-panel en-panel--info" style={{ marginTop: 14 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 800 }}>{current.label}</h3>
+            <button type="button" className="en-btn en-btn--sm" onClick={() => setActive(null)}>
               Close
             </button>
           </div>
-          <p style={{ margin: '10px 0 6px', fontSize: '12px', color: '#334155' }}>
-            <strong>ATProto collection:</strong> <code>{current.collection}</code>
-          </p>
-          <p style={{ margin: '0 0 8px', fontSize: '12px', color: '#b45309', fontWeight: 700 }}>
-            Not implemented yet
-          </p>
-          <p style={{ margin: '0 0 4px', fontSize: '12px', color: '#334155' }}>Example record JSON</p>
-          <pre
-            style={{
-              margin: 0,
-              padding: '10px',
-              borderRadius: '8px',
-              border: '1px solid #dbeafe',
-              background: '#fff',
-              fontSize: '12px',
-              overflow: 'auto',
-            }}
-          >
-            {JSON.stringify(current.exampleRecord, null, 2)}
-          </pre>
+          <div className="en-meta-row" style={{ marginTop: 0 }}>
+            <span>
+              <strong>collection</strong> <code>{current.collection}</code>
+            </span>
+            <span>
+              <span className="en-chip en-chip--warn">Not implemented</span>
+            </span>
+          </div>
+          <h4 style={{ margin: '12px 0 6px', fontSize: 13, color: 'var(--en-text-soft)' }}>Example record</h4>
+          <pre className="en-pre">{JSON.stringify(current.exampleRecord, null, 2)}</pre>
         </div>
       )}
-    </section>
+    </div>
   )
 }

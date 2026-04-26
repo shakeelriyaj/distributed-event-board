@@ -1,100 +1,70 @@
+type DiagramVariant = 'current' | 'cross' | 'future'
+
+type Step = { text: string; future?: boolean; arrow?: boolean }
+
 function DiagramBlock({
   title,
   steps,
-  accent,
+  variant,
 }: {
   title: string
-  steps: string[]
-  accent: string
+  steps: Step[]
+  variant: DiagramVariant
 }) {
   return (
-    <section
-      style={{
-        flex: '1 1 320px',
-        border: '1px solid #e2e8f0',
-        borderRadius: '10px',
-        background: '#fff',
-        padding: '12px',
-      }}
-    >
-      <h3 style={{ margin: '0 0 8px', color: accent, fontSize: '1rem' }}>{title}</h3>
-      <ol style={{ margin: 0, paddingLeft: '18px', display: 'grid', gap: '5px', color: '#334155', fontSize: '13px' }}>
-        {steps.map((step) => (
-          <li key={step}>{step}</li>
+    <section className="en-arch__col">
+      <h3 className={`en-arch__title en-arch__title--${variant}`}>{title}</h3>
+      <ol className="en-arch__list">
+        {steps.map((step, i) => (
+          <li
+            key={`${step.text}-${i}`}
+            data-future={step.future ? '' : undefined}
+            data-arrow={step.arrow ? '' : undefined}
+          >
+            {step.text}
+          </li>
         ))}
       </ol>
     </section>
   )
 }
 
+const cur: Step[] = [
+  { text: 'Client' },
+  { text: 'AtpAgent' },
+  { text: 'Bluesky PDS · user repo' },
+  { text: 'org.community.event collection' },
+  { text: 'createRecord · getRecord · listRecords' },
+  { text: 'EventNet UI' },
+]
+const cross: Step[] = [
+  { text: 'Client' },
+  { text: 'resolveHandle' },
+  { text: 'Foreign PDS' },
+  { text: 'listRecords' },
+  { text: 'Render in feed' },
+]
+const future: Step[] = [
+  { text: "Many users' PDSs", future: true },
+  { text: 'Relay · Firehose', future: true },
+  { text: 'AppView · indexer', future: true },
+  { text: 'Search · ranked feed', future: true },
+  { text: 'Global discovery UI', future: true },
+]
+
 export function ArchitectureDiagramPanel() {
   return (
-    <section
-      style={{
-        padding: '16px',
-        borderRadius: '12px',
-        border: '1px solid #e2e8f0',
-        background: 'linear-gradient(180deg, #f8fafc 0%, #fff 100%)',
-      }}
-      aria-labelledby="architecture-diagram-heading"
-    >
-      <h2 id="architecture-diagram-heading" style={{ margin: '0 0 10px', color: '#0f172a' }}>
-        Architecture flow: current vs future
-      </h2>
-      <p style={{ margin: '0 0 14px', fontSize: '12px', color: '#475569', lineHeight: 1.5 }}>
+    <div>
+      <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>Architecture</h2>
+      <p style={{ fontSize: 13, color: 'var(--en-text-soft)', marginBottom: 16, lineHeight: 1.55 }}>
         The current app proves PDS persistence and repo-local listing. Cross-user discovery requires an indexing
         layer.
       </p>
-
-      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-        <DiagramBlock
-          title="CURRENT IMPLEMENTED FLOW"
-          accent="#166534"
-          steps={[
-            '✅ Client',
-            '↓',
-            '✅ AtpAgent',
-            '↓',
-            "✅ Bluesky PDS / user's repo",
-            '↓',
-            '✅ org.community.event collection',
-            '↓',
-            '✅ createRecord / getRecord / listRecords',
-            '↓',
-            '✅ UI cards + detail page',
-          ]}
-        />
-        <DiagramBlock
-          title="CROSS-REPO READ (IMPLEMENTED)"
-          accent="#1d4ed8"
-          steps={[
-            '✅ Client',
-            '↓',
-            '✅ resolveHandle',
-            '↓',
-            '✅ PDS B (foreign repo)',
-            '↓',
-            '✅ listRecords',
-            '↓',
-            '✅ render',
-          ]}
-        />
-        <DiagramBlock
-          title="FUTURE DISCOVERY FLOW"
-          accent="#92400e"
-          steps={[
-            "❌ Many users' PDSs (future)",
-            '↓',
-            '❌ Relay / Firehose (future)',
-            '↓',
-            '❌ AppView / Indexer (future)',
-            '↓',
-            '❌ Search + discovery feed (future)',
-            '↓',
-            '❌ Client UI global discovery (future)',
-          ]}
-        />
+      <div className="en-arch">
+        <DiagramBlock title="Current" variant="current" steps={cur} />
+        <DiagramBlock title="Cross-repo read" variant="cross" steps={cross} />
+        <DiagramBlock title="Future" variant="future" steps={future} />
       </div>
-    </section>
+    </div>
   )
 }
