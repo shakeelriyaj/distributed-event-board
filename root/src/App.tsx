@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import { Navigate, NavLink, Route, Routes } from 'react-router-dom'
 import { AtprotoVerificationPanel } from './components/AtprotoVerificationPanel'
+import { CurrentAccountBanner } from './components/CurrentAccountBanner'
+import { DemoWalkthroughPage } from './components/DemoWalkthroughPage'
 import { EventDetailPage } from './components/EventDetailPage'
 import { EventSchemaValidationPanel } from './components/EventSchemaValidationPanel'
 import { EventForm } from './components/EventForm'
@@ -27,7 +29,10 @@ function RouteShell({
         <h1 style={{ fontSize: '2.2rem', color: '#0070ff', marginBottom: '8px' }}>{title}</h1>
         <p style={{ color: '#666', margin: 0 }}>{subtitle}</p>
       </header>
-      <main>{children}</main>
+      <main>
+        <CurrentAccountBanner />
+        {children}
+      </main>
       <footer style={{ marginTop: '50px', textAlign: 'center', fontSize: '12px', color: '#999' }}>
         Connected to: {import.meta.env.VITE_ATP_IDENTIFIER}
       </footer>
@@ -125,16 +130,8 @@ function App() {
         <Route
           path="/demo"
           element={
-            <RouteShell title="Demo (Placeholder)" subtitle="Reserved for future demos and mock-only workflows.">
-              <section
-                style={{ padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#fff' }}
-              >
-                <h2 style={{ marginTop: 0, color: '#0f172a' }}>Nothing here yet</h2>
-                <p style={{ margin: 0, color: '#64748b' }}>
-                  This route is intentionally empty for now. Existing ATProto flows remain under /events, /create,
-                  and /debug.
-                </p>
-              </section>
+            <RouteShell title="Demo Walkthrough" subtitle="Presentation script for the end-to-end glass-box flow.">
+              <DemoWalkthroughPage />
             </RouteShell>
           }
         />

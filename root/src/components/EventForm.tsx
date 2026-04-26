@@ -1,4 +1,6 @@
 import React, { useState } from 'react'
+import { getAtprotoConfig } from '../lib/atproto/config'
+import { getCurrentSessionSnapshot } from '../lib/atproto/session'
 import { parseAtUri, type ParsedAtUri } from '../lib/events/atUri'
 import { createEventRecord } from '../lib/events/createEventRecord'
 import { createEventRecordDraft } from '../lib/events/createEventRecordDraft'
@@ -19,6 +21,7 @@ export const EventForm = () => {
     new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 16),
   )
   const [endsAt, setEndsAt] = useState('')
+  const [confirmWrite, setConfirmWrite] = useState(false)
 
   const [persisted, setPersisted] = useState<PersistedReadBack | null>(null)
   const [readBackError, setReadBackError] = useState<string | null>(null)
@@ -28,6 +31,8 @@ export const EventForm = () => {
   const [manualResult, setManualResult] = useState<ReadEventRecordResult | null>(null)
   const [manualParsed, setManualParsed] = useState<ParsedAtUri | null>(null)
   const [manualError, setManualError] = useState<string | null>(null)
+  const config = getAtprotoConfig()
+  const session = getCurrentSessionSnapshot()
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -98,6 +103,29 @@ export const EventForm = () => {
         Real PDS path: this form uses <code style={{ fontSize: '11px' }}>createRecord</code> on your session repo,
         then <code style={{ fontSize: '11px' }}>getRecord</code> for read-back. It is not the mock feed below.
       </p>
+      <section
+        style={{
+          marginBottom: '12px',
+          padding: '12px',
+          borderRadius: '8px',
+          border: '1px solid #fde68a',
+          background: '#fffbeb',
+          color: '#78350f',
+        }}
+      >
+        <p style={{ margin: '0 0 8px', fontSize: '12px', fontWeight: 600 }}>
+          This writes a real org.community.event record to the configured account/PDS.
+        </p>
+        <p style={{ margin: '0 0 4px', fontSize: '12px' }}>
+          <strong>Identifier:</strong> {config.identifier || '(not configured)'}
+        </p>
+        <p style={{ margin: '0 0 4px', fontSize: '12px', wordBreak: 'break-all' }}>
+          <strong>Service:</strong> {config.service}
+        </p>
+        <p style={{ margin: 0, fontSize: '12px' }}>
+          <strong>Session DID:</strong> {session?.did ?? 'Not logged in yet'}
+        </p>
+      </section>
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <input
           name="title"
@@ -131,9 +159,30 @@ export const EventForm = () => {
           placeholder="Location (Optional)"
           style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}
         />
+        <label
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '13px',
+            color: '#334155',
+            padding: '8px 10px',
+            border: '1px solid #e2e8f0',
+            borderRadius: '8px',
+            background: '#fff',
+          }}
+        >
+          <input
+            type="checkbox"
+            required
+            checked={confirmWrite}
+            onChange={(e) => setConfirmWrite(e.target.checked)}
+          />
+          I understand this writes to a real PDS.
+        </label>
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !confirmWrite}
           style={{
             padding: '12px',
             borderRadius: '6px',
@@ -141,7 +190,8 @@ export const EventForm = () => {
             background: '#0070ff',
             color: 'white',
             fontWeight: 'bold',
-            cursor: loading ? 'not-allowed' : 'pointer',
+            cursor: loading || !confirmWrite ? 'not-allowed' : 'pointer',
+            opacity: loading || !confirmWrite ? 0.65 : 1,
           }}
         >
           {loading ? 'Publishing...' : 'Post to Board'}
@@ -204,6 +254,88 @@ export const EventForm = () => {
           >
             {JSON.stringify(persisted.fromPds.value, null, 2)}
           </pre>
+        </section>
+      )}
+
+      {persisted && (
+        <section
+          style={{
+            marginTop: '14px',
+            padding: '14px',
+            borderRadius: '10px',
+            border: '1px solid #e2e8f0',
+            background: '#fff',
+          }}
+        >
+          <h4 style={{ margin: '0 0 8px', color: '#0f172a' }}>Protocol lifecycle timeline</h4>
+          <p style={{ margin: '0 0 10px', fontSize: '12px', color: '#64748b', lineHeight: 1.45 }}>
+            End-to-end path for this event record after submit.
+          </p>
+          <ol style={{ margin: 0, paddingLeft: '20px', display: 'grid', gap: '8px' }}>
+            <li>
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px', background: '#f8fafc' }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#166534' }}>DONE - Draft built</div>
+                <div style={{ fontSize: '12px', color: '#475569' }}>Draft record assembled from form input.</div>
+              </div>
+            </li>
+            <li>
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px', background: '#f8fafc' }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#166534' }}>
+                  DONE - Validated against org.community.event
+                </div>
+                <div style={{ fontSize: '12px', color: '#475569' }}>
+                  Collection: <code style={{ fontSize: '11px' }}>{persisted.parsed.collection}</code>
+                </div>
+              </div>
+            </li>
+            <li>
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px', background: '#f8fafc' }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#166534' }}>DONE - createRecord sent to PDS</div>
+                <div style={{ fontSize: '12px', color: '#475569' }}>
+                  Repo DID: <code style={{ fontSize: '11px' }}>{persisted.parsed.repo}</code>
+                </div>
+              </div>
+            </li>
+            <li>
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px', background: '#f8fafc' }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#166534' }}>DONE - URI + CID returned</div>
+                <div style={{ fontSize: '12px', color: '#475569', wordBreak: 'break-all' }}>
+                  URI: <code style={{ fontSize: '11px' }}>{persisted.createUri}</code>
+                </div>
+                <div style={{ fontSize: '12px', color: '#475569', wordBreak: 'break-all' }}>
+                  CID: <code style={{ fontSize: '11px' }}>{persisted.createCid}</code>
+                </div>
+              </div>
+            </li>
+            <li>
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px', background: '#f8fafc' }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#166534' }}>DONE - getRecord read back from PDS</div>
+                <div style={{ fontSize: '12px', color: '#475569', wordBreak: 'break-all' }}>
+                  CID (getRecord): <code style={{ fontSize: '11px' }}>{persisted.fromPds.cid}</code>
+                </div>
+              </div>
+            </li>
+            <li>
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px', background: '#f8fafc' }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#166534' }}>
+                  DONE - Record can appear in My PDS Events via listRecords
+                </div>
+                <div style={{ fontSize: '12px', color: '#475569' }}>
+                  Use the My PDS Events panel to list this repo collection after publish.
+                </div>
+              </div>
+            </li>
+            <li>
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px', background: '#f8fafc' }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#92400e' }}>
+                  FUTURE - Cross-user discovery requires AppView/indexer
+                </div>
+                <div style={{ fontSize: '12px', color: '#475569' }}>
+                  Not implemented in this app yet; current flow is write/read/list for known repo(s).
+                </div>
+              </div>
+            </li>
+          </ol>
         </section>
       )}
 
