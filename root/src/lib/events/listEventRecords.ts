@@ -13,7 +13,11 @@ export type ListedEventRecord = {
 export type ListMyEventRecordsResult = {
   repoDid: string
   records: ListedEventRecord[]
-  /** Present when more pages exist (not wired in UI yet). */
+  cursor?: string
+}
+
+export type ListMyEventRecordsInput = {
+  limit?: number
   cursor?: string
 }
 
@@ -21,24 +25,28 @@ export type ListMyEventRecordsResult = {
  * Lists org.community.event records in the authenticated user's repo only.
  * Uses com.atproto.repo.listRecords — not cross-user discovery or an AppView.
  */
-export async function listMyEventRecords(): Promise<ListMyEventRecordsResult> {
+export async function listMyEventRecords(input: ListMyEventRecordsInput = {}): Promise<ListMyEventRecordsResult> {
   const session = await loginAndGetSession()
   const agent = getAtprotoClient()
+  const limit = input.limit ?? LIST_LIMIT
 
   const response = await agent.com.atproto.repo.listRecords({
     repo: session.did,
     collection: EVENT_RECORD_TYPE,
-    limit: LIST_LIMIT,
+    limit,
+    cursor: input.cursor,
   })
 
   const { records, cursor } = response.data
+  const normalized = (records ?? []).map((r) => ({
+    uri: r.uri,
+    cid: r.cid,
+    value: r.value,
+  }))
+
   return {
     repoDid: session.did,
-    records: records.map((r) => ({
-      uri: r.uri,
-      cid: r.cid,
-      value: r.value,
-    })),
+    records: normalized,
     cursor: cursor ?? undefined,
   }
 }

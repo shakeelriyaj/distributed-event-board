@@ -1,9 +1,17 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getAtprotoConfig } from '../lib/atproto/config'
 import { getCurrentSessionSnapshot } from '../lib/atproto/session'
 import { parseAtUri, type ParsedAtUri } from '../lib/events/atUri'
 import { createEventRecord } from '../lib/events/createEventRecord'
 import { createEventRecordDraft } from '../lib/events/createEventRecordDraft'
+import {
+  addRecentEventUri,
+  clearRecentEventUris,
+  getRecentEventUris,
+  removeRecentEventUri,
+} from '../lib/events/recentEventUris'
+import { deleteEventRecordAndCleanupRecent } from '../lib/events/deleteEventRecord'
 import { readEventRecord, type ReadEventRecordResult } from '../lib/events/readEventRecord'
 import { validateEventRecord } from '../lib/events/validateEventRecord'
 
@@ -15,6 +23,7 @@ type PersistedReadBack = {
 }
 
 export const EventForm = () => {
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [startsAt, setStartsAt] = useState(() =>
@@ -31,8 +40,28 @@ export const EventForm = () => {
   const [manualResult, setManualResult] = useState<ReadEventRecordResult | null>(null)
   const [manualParsed, setManualParsed] = useState<ParsedAtUri | null>(null)
   const [manualError, setManualError] = useState<string | null>(null)
+  const [recentUris, setRecentUris] = useState<string[]>(() => getRecentEventUris())
+  const [recentDeleteError, setRecentDeleteError] = useState<string | null>(null)
+  const [recentDeletingUri, setRecentDeletingUri] = useState<string | null>(null)
   const config = getAtprotoConfig()
   const session = getCurrentSessionSnapshot()
+  const refreshRecentUris = () => setRecentUris(getRecentEventUris())
+
+  const handleDeleteRecent = async (uri: string) => {
+    const typed = window.prompt('Type DELETE to remove this record from your PDS:')
+    if (typed !== 'DELETE') return
+    setRecentDeletingUri(uri)
+    setRecentDeleteError(null)
+    try {
+      await deleteEventRecordAndCleanupRecent(uri)
+      refreshRecentUris()
+      setMessage(`🗑️ Deleted record: ${uri}`)
+    } catch (e) {
+      setRecentDeleteError(e instanceof Error ? e.message : 'Failed to delete record')
+    } finally {
+      setRecentDeletingUri(null)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -58,6 +87,8 @@ export const EventForm = () => {
       }
 
       const created = await createEventRecord(draft)
+      addRecentEventUri(created.uri)
+      refreshRecentUris()
       setMessage(`✅ Event Published! URI: ${created.uri} at ${new Date().toLocaleTimeString()}!`)
 
       try {
@@ -198,6 +229,105 @@ export const EventForm = () => {
         </button>
       </form>
       {message && <p style={{ marginTop: '10px', fontSize: '13px', color: '#555' }}>{message}</p>}
+
+      <section
+        style={{
+          marginTop: '16px',
+          padding: '14px',
+          borderRadius: '10px',
+          border: '1px solid #e5e7eb',
+          background: '#fff',
+        }}
+      >
+        <h4 style={{ margin: '0 0 8px', color: '#0f172a' }}>Recent Local Writes</h4>
+        <p style={{ margin: '0 0 10px', fontSize: '12px', color: '#64748b', lineHeight: 1.45 }}>
+          Browser-local convenience list of recently created AT URIs. This is not discovery.
+        </p>
+        {recentUris.length === 0 ? (
+          <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>No recent local writes saved yet.</p>
+        ) : (
+          <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: '8px' }}>
+            {recentUris.map((uri) => (
+              <li
+                key={uri}
+                style={{
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  padding: '8px',
+                  background: '#f8fafc',
+                }}
+              >
+                <div style={{ fontSize: '12px', color: '#334155', wordBreak: 'break-all', marginBottom: '6px' }}>{uri}</div>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(uri)
+                      } catch {
+                        // Keep panel simple; ignore clipboard failures.
+                      }
+                    }}
+                    style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff' }}
+                  >
+                    Copy URI
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/events/${encodeURIComponent(uri)}`)}
+                    style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff' }}
+                  >
+                    Open detail
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      removeRecentEventUri(uri)
+                      refreshRecentUris()
+                    }}
+                    style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #fecaca', background: '#fff1f2' }}
+                  >
+                    Remove
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteRecent(uri)}
+                    disabled={recentDeletingUri === uri}
+                    style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #fecaca', background: '#fff1f2' }}
+                  >
+                    {recentDeletingUri === uri ? 'Deleting…' : 'Delete from PDS'}
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        {recentDeleteError && (
+          <p style={{ marginTop: '8px', fontSize: '13px', color: '#b91c1c' }} role="alert">
+            Delete error: {recentDeleteError}
+          </p>
+        )}
+        <div style={{ marginTop: '10px' }}>
+          <button
+            type="button"
+            onClick={() => {
+              clearRecentEventUris()
+              refreshRecentUris()
+            }}
+            disabled={recentUris.length === 0}
+            style={{
+              padding: '6px 10px',
+              borderRadius: '6px',
+              border: '1px solid #cbd5e1',
+              background: '#fff',
+              cursor: recentUris.length === 0 ? 'not-allowed' : 'pointer',
+              opacity: recentUris.length === 0 ? 0.6 : 1,
+            }}
+          >
+            Clear all
+          </button>
+        </div>
+      </section>
 
       {persisted && (
         <section

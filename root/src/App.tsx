@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Navigate, NavLink, Route, Routes } from 'react-router-dom'
 import { AtprotoVerificationPanel } from './components/AtprotoVerificationPanel'
+import { ArchitectureDiagramPanel } from './components/ArchitectureDiagramPanel'
 import { CurrentAccountBanner } from './components/CurrentAccountBanner'
 import { DemoWalkthroughPage } from './components/DemoWalkthroughPage'
 import { EventDetailPage } from './components/EventDetailPage'
@@ -111,6 +112,8 @@ function App() {
               title="Protocol Debug"
               subtitle="Authentication, protocol progress, intent mapping, and source labeling."
             >
+              <ArchitectureDiagramPanel />
+              <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
               <ProtocolProgressPanel />
               <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -131,6 +134,8 @@ function App() {
           path="/demo"
           element={
             <RouteShell title="Demo Walkthrough" subtitle="Presentation script for the end-to-end glass-box flow.">
+              <ArchitectureDiagramPanel />
+              <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
               <DemoWalkthroughPage />
             </RouteShell>
           }
