@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
-import { Navigate, NavLink, Route, Routes, useParams } from 'react-router-dom'
+import { Navigate, NavLink, Route, Routes } from 'react-router-dom'
 import { AtprotoVerificationPanel } from './components/AtprotoVerificationPanel'
+import { EventDetailPage } from './components/EventDetailPage'
 import { EventSchemaValidationPanel } from './components/EventSchemaValidationPanel'
 import { EventForm } from './components/EventForm'
 import { EventFeed } from './components/EventFeed'
@@ -31,33 +32,6 @@ function RouteShell({
         Connected to: {import.meta.env.VITE_ATP_IDENTIFIER}
       </footer>
     </div>
-  )
-}
-
-function EventDetailRoute() {
-  const { encodedAtUri } = useParams()
-  let decoded = ''
-  if (encodedAtUri) {
-    try {
-      decoded = decodeURIComponent(encodedAtUri)
-    } catch {
-      decoded = '(invalid URI encoding)'
-    }
-  }
-  return (
-    <RouteShell
-      title="Event Detail (Route Placeholder)"
-      subtitle="Pass 8 route shell: decode the AT URI route parameter."
-    >
-      <section style={{ padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#fff' }}>
-        <h2 style={{ marginTop: 0, color: '#0f172a' }}>Decoded AT URI</h2>
-        {decoded ? (
-          <code style={{ display: 'block', wordBreak: 'break-all', fontSize: '13px' }}>{decoded}</code>
-        ) : (
-          <p style={{ margin: 0, color: '#64748b' }}>No URI parameter provided.</p>
-        )}
-      </section>
-    </RouteShell>
   )
 }
 
@@ -109,7 +83,14 @@ function App() {
             </RouteShell>
           }
         />
-        <Route path="/events/:encodedAtUri" element={<EventDetailRoute />} />
+        <Route
+          path="/events/:encodedAtUri"
+          element={
+            <RouteShell title="Event Detail" subtitle="Glass-box record view from your PDS using a known AT URI.">
+              <EventDetailPage />
+            </RouteShell>
+          }
+        />
         <Route
           path="/create"
           element={
