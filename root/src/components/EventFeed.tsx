@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useJetstream, type JetstreamEvent } from '../atproto/jetstream'
 import { SourceBadge } from './SourceBadge'
+import { EventCard } from './EventCard'
 
 function eventWhen(value: Record<string, unknown> | undefined): string | null {
   if (!value) return null
@@ -9,6 +10,36 @@ function eventWhen(value: Record<string, unknown> | undefined): string | null {
   const eventDate = value.eventDate
   if (typeof eventDate === 'string') return eventDate
   return null
+}
+
+function eventTitle(value: Record<string, unknown> | undefined): string {
+  if (!value) return '(no title)'
+  const title = value.title
+  return typeof title === 'string' ? title : '(no title)'
+}
+
+function eventLocation(value: Record<string, unknown> | undefined): string | null {
+  if (!value) return null
+  const location = value.location
+  return typeof location === 'string' ? location : null
+}
+
+function eventRsvpCount(value: Record<string, unknown> | undefined): number | null {
+  if (!value) return null
+  const count = value.rsvpCount
+  return typeof count === 'number' ? count : null
+}
+
+function eventHost(uri: string | undefined, value: Record<string, unknown> | undefined): string | null {
+  if (value) {
+    const hostHandle = value.hostHandle
+    if (typeof hostHandle === 'string') return hostHandle
+    const hostDid = value.hostDid
+    if (typeof hostDid === 'string') return hostDid
+  }
+  if (!uri || !uri.startsWith('at://')) return null
+  const parts = uri.slice('at://'.length).split('/').filter(Boolean)
+  return parts[0] ?? null
 }
 
 export const EventFeed = () => {
@@ -113,31 +144,17 @@ export const EventFeed = () => {
       ) : (
         <div style={{ display: 'grid', gap: '20px' }}>
           {events.map((evt) => (
-            <div 
-              key={evt.uri} 
-              style={{ 
-                border: '1px solid #ddd', 
-                padding: '20px', 
-                borderRadius: '10px', 
-                backgroundColor: 'white',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-              }}
-            >
-              <h3 style={{ margin: '0 0 8px 0', color: '#0070ff' }}>{evt.value.title}</h3>
-              <p style={{ margin: '0 0 15px 0', color: '#555', lineHeight: '1.4' }}>
-                {evt.value.description}
-              </p>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#888' }}>
-                <span>📍 {evt.value.location || 'Remote/TBD'}</span>
-                <span>
-                  📅{' '}
-                  {(() => {
-                    const when = eventWhen(evt.value)
-                    return when ? new Date(when).toLocaleString() : '—'
-                  })()}
-                </span>
-              </div>
-            </div>
+            <EventCard
+              key={evt.uri ?? `${eventTitle(evt.value)}-${eventWhen(evt.value) ?? 'na'}`}
+              title={eventTitle(evt.value)}
+              startsAt={eventWhen(evt.value)}
+              location={eventLocation(evt.value)}
+              host={eventHost(evt.uri, evt.value)}
+              rsvpCount={eventRsvpCount(evt.value)}
+              uri={typeof evt.uri === 'string' ? evt.uri : undefined}
+              cid={typeof evt.cid === 'string' ? evt.cid : undefined}
+              sourceVariant="mock-feed"
+            />
           ))}
         </div>
       )}

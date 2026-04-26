@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import type { ReactNode } from 'react'
+import { Navigate, NavLink, Route, Routes, useParams } from 'react-router-dom'
 import { AtprotoVerificationPanel } from './components/AtprotoVerificationPanel'
 import { EventSchemaValidationPanel } from './components/EventSchemaValidationPanel'
 import { EventForm } from './components/EventForm'
@@ -7,62 +8,157 @@ import { MyEventRecordsPanel } from './components/MyEventRecordsPanel'
 import { ProtocolProgressPanel } from './components/ProtocolProgressPanel'
 import { ProtocolIntentPanel } from './components/ProtocolIntentPanel'
 import { FutureDiscoveryCallout } from './components/FutureDiscoveryCallout'
-import { GlassBoxApp } from './glass-box/GlassBoxApp'
+import { SourceBadge } from './components/SourceBadge'
 import './glass-box/glass-box.css'
 
-type AppMode = 'lab' | 'events'
+function RouteShell({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string
+  subtitle: string
+  children: ReactNode
+}) {
+  return (
+    <div className="gb-legacy">
+      <header style={{ marginBottom: '28px', textAlign: 'center' }}>
+        <h1 style={{ fontSize: '2.2rem', color: '#0070ff', marginBottom: '8px' }}>{title}</h1>
+        <p style={{ color: '#666', margin: 0 }}>{subtitle}</p>
+      </header>
+      <main>{children}</main>
+      <footer style={{ marginTop: '50px', textAlign: 'center', fontSize: '12px', color: '#999' }}>
+        Connected to: {import.meta.env.VITE_ATP_IDENTIFIER}
+      </footer>
+    </div>
+  )
+}
+
+function EventDetailRoute() {
+  const { encodedAtUri } = useParams()
+  let decoded = ''
+  if (encodedAtUri) {
+    try {
+      decoded = decodeURIComponent(encodedAtUri)
+    } catch {
+      decoded = '(invalid URI encoding)'
+    }
+  }
+  return (
+    <RouteShell
+      title="Event Detail (Route Placeholder)"
+      subtitle="Pass 8 route shell: decode the AT URI route parameter."
+    >
+      <section style={{ padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#fff' }}>
+        <h2 style={{ marginTop: 0, color: '#0f172a' }}>Decoded AT URI</h2>
+        {decoded ? (
+          <code style={{ display: 'block', wordBreak: 'break-all', fontSize: '13px' }}>{decoded}</code>
+        ) : (
+          <p style={{ margin: 0, color: '#64748b' }}>No URI parameter provided.</p>
+        )}
+      </section>
+    </RouteShell>
+  )
+}
 
 function App() {
-  const [mode, setMode] = useState<AppMode>('lab')
-
   return (
     <div className="gb-appShell">
-      <nav className="gb-appTabs" aria-label="Application mode">
-        <button
-          type="button"
-          className={'gb-appTabs__btn ' + (mode === 'lab' ? 'gb-appTabs__btn--on' : '')}
-          onClick={() => setMode('lab')}
+      <nav className="gb-appTabs" aria-label="Primary navigation">
+        <NavLink
+          to="/events"
+          className={({ isActive }) => 'gb-appTabs__btn ' + (isActive ? 'gb-appTabs__btn--on' : '')}
         >
-          Glass box lab
-        </button>
-        <button
-          type="button"
-          className={'gb-appTabs__btn ' + (mode === 'events' ? 'gb-appTabs__btn--on' : '')}
-          onClick={() => setMode('events')}
+          Events
+        </NavLink>
+        <NavLink
+          to="/create"
+          className={({ isActive }) => 'gb-appTabs__btn ' + (isActive ? 'gb-appTabs__btn--on' : '')}
         >
-          Event board
-        </button>
+          Create
+        </NavLink>
+        <NavLink
+          to="/debug"
+          className={({ isActive }) => 'gb-appTabs__btn ' + (isActive ? 'gb-appTabs__btn--on' : '')}
+        >
+          Debug
+        </NavLink>
+        <NavLink
+          to="/demo"
+          className={({ isActive }) => 'gb-appTabs__btn ' + (isActive ? 'gb-appTabs__btn--on' : '')}
+        >
+          Demo
+        </NavLink>
       </nav>
 
-      {mode === 'lab' ? (
-        <GlassBoxApp />
-      ) : (
-        <div className="gb-legacy">
-          <header style={{ marginBottom: '40px', textAlign: 'center' }}>
-            <h1 style={{ fontSize: '2.5rem', color: '#0070ff' }}>Community Event Board</h1>
-            <p style={{ color: '#666' }}>Decentralized & powered by AT Protocol</p>
-          </header>
-          <main>
-            <ProtocolProgressPanel />
-            <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
-            <ProtocolIntentPanel />
-            <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
-            <AtprotoVerificationPanel />
-            <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
-            <EventSchemaValidationPanel />
-            <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
-            <EventForm />
-            <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
-            <MyEventRecordsPanel />
-            <FutureDiscoveryCallout />
-            <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
-            <EventFeed />
-          </main>
-          <footer style={{ marginTop: '50px', textAlign: 'center', fontSize: '12px', color: '#999' }}>
-            Connected to: {import.meta.env.VITE_ATP_IDENTIFIER}
-          </footer>
-        </div>
-      )}
+      <Routes>
+        <Route path="/" element={<Navigate to="/events" replace />} />
+        <Route
+          path="/events"
+          element={
+            <RouteShell
+              title="Community Event Board"
+              subtitle="Real PDS data and clearly labeled non-discovery demo surfaces."
+            >
+              <EventSchemaValidationPanel />
+              <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
+              <MyEventRecordsPanel />
+              <FutureDiscoveryCallout />
+              <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
+              <EventFeed />
+            </RouteShell>
+          }
+        />
+        <Route path="/events/:encodedAtUri" element={<EventDetailRoute />} />
+        <Route
+          path="/create"
+          element={
+            <RouteShell title="Create Event" subtitle="Publish records to your repo, then read them back by AT URI.">
+              <EventForm />
+            </RouteShell>
+          }
+        />
+        <Route
+          path="/debug"
+          element={
+            <RouteShell
+              title="Protocol Debug"
+              subtitle="Authentication, protocol progress, intent mapping, and source labeling."
+            >
+              <ProtocolProgressPanel />
+              <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                <SourceBadge variant="pds-list-records" />
+                <SourceBadge variant="mock-feed" />
+                <SourceBadge variant="future-appview" />
+              </div>
+              <hr style={{ margin: '20px 0 40px', border: '0', borderTop: '1px solid #eee' }} />
+              <AtprotoVerificationPanel />
+              <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
+              <ProtocolIntentPanel />
+              <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
+              <FutureDiscoveryCallout />
+            </RouteShell>
+          }
+        />
+        <Route
+          path="/demo"
+          element={
+            <RouteShell title="Demo (Placeholder)" subtitle="Reserved for future demos and mock-only workflows.">
+              <section
+                style={{ padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#fff' }}
+              >
+                <h2 style={{ marginTop: 0, color: '#0f172a' }}>Nothing here yet</h2>
+                <p style={{ margin: 0, color: '#64748b' }}>
+                  This route is intentionally empty for now. Existing ATProto flows remain under /events, /create,
+                  and /debug.
+                </p>
+              </section>
+            </RouteShell>
+          }
+        />
+        <Route path="*" element={<Navigate to="/events" replace />} />
+      </Routes>
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { listMyEventRecords, type ListedEventRecord } from '../lib/events/listEventRecords'
 import { SourceBadge } from './SourceBadge'
+import { EventCard } from './EventCard'
 
 function recordTitle(value: unknown): string {
   if (value && typeof value === 'object' && 'title' in value && typeof (value as { title: unknown }).title === 'string') {
@@ -13,6 +14,22 @@ function recordStartsAt(value: unknown): string | null {
   if (value && typeof value === 'object' && 'startsAt' in value) {
     const s = (value as { startsAt: unknown }).startsAt
     return typeof s === 'string' ? s : null
+  }
+  return null
+}
+
+function recordLocation(value: unknown): string | null {
+  if (value && typeof value === 'object' && 'location' in value) {
+    const s = (value as { location: unknown }).location
+    return typeof s === 'string' ? s : null
+  }
+  return null
+}
+
+function recordRsvpCount(value: unknown): number | null {
+  if (value && typeof value === 'object' && 'rsvpCount' in value) {
+    const n = (value as { rsvpCount: unknown }).rsvpCount
+    return typeof n === 'number' ? n : null
   }
   return null
 }
@@ -115,27 +132,21 @@ export const MyEventRecordsPanel = () => {
             <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {records.map((r) => {
                 const starts = recordStartsAt(r.value)
+                const location = recordLocation(r.value)
+                const rsvpCount = recordRsvpCount(r.value)
                 return (
-                <li
-                  key={r.uri}
-                  style={{
-                    padding: '12px',
-                    borderRadius: '8px',
-                    border: '1px solid #e5e7eb',
-                    background: '#fff',
-                  }}
-                >
-                  <div style={{ fontWeight: 600, color: '#0f172a', marginBottom: '4px' }}>{recordTitle(r.value)}</div>
-                  {starts && (
-                    <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '6px' }}>
-                      startsAt: {starts}
-                    </div>
-                  )}
-                  <div style={{ fontSize: '11px', color: '#94a3b8', wordBreak: 'break-all' }}>{r.uri}</div>
-                  <div style={{ fontSize: '11px', color: '#94a3b8', wordBreak: 'break-all', marginTop: '4px' }}>
-                    cid: {r.cid}
-                  </div>
-                </li>
+                  <li key={r.uri}>
+                    <EventCard
+                      title={recordTitle(r.value)}
+                      startsAt={starts}
+                      location={location}
+                      host={repoDid}
+                      rsvpCount={rsvpCount}
+                      uri={r.uri}
+                      cid={r.cid}
+                      sourceVariant="pds-list-records"
+                    />
+                  </li>
                 )
               })}
             </ul>
