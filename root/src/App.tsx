@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Navigate, NavLink, Route, Routes } from 'react-router-dom'
 import { AtprotoVerificationPanel } from './components/AtprotoVerificationPanel'
 import { ArchitectureDiagramPanel } from './components/ArchitectureDiagramPanel'
+import { BrowseUserEventsPanel } from './components/BrowseUserEventsPanel'
 import { CurrentAccountBanner } from './components/CurrentAccountBanner'
 import { DemoWalkthroughPage } from './components/DemoWalkthroughPage'
 import { EventDetailPage } from './components/EventDetailPage'
@@ -83,6 +84,7 @@ function App() {
               <EventSchemaValidationPanel />
               <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
               <MyEventRecordsPanel />
+              <BrowseUserEventsPanel />
               <FutureDiscoveryCallout />
               <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
               <EventFeed />

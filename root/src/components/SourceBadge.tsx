@@ -1,4 +1,4 @@
-export type SourceBadgeVariant = 'pds-list-records' | 'mock-feed' | 'future-appview'
+export type SourceBadgeVariant = 'pds-list-records' | 'mock-feed' | 'future-appview' | 'handle-pds-direct'
 
 const STYLES: Record<
   SourceBadgeVariant,
@@ -22,9 +22,15 @@ const STYLES: Record<
     color: '#475569',
     border: '#cbd5e1',
   },
+  'handle-pds-direct': {
+    label: "Source: from handle's PDS directly",
+    background: '#eef2ff',
+    color: '#3730a3',
+    border: '#a5b4fc',
+  },
 }
 
-export function SourceBadge({ variant }: { variant: SourceBadgeVariant }) {
+export function SourceBadge({ variant, labelOverride }: { variant: SourceBadgeVariant; labelOverride?: string }) {
   const s = STYLES[variant]
   return (
     <span
@@ -41,7 +47,7 @@ export function SourceBadge({ variant }: { variant: SourceBadgeVariant }) {
         color: s.color,
       }}
     >
-      {s.label}
+      {labelOverride ?? s.label}
     </span>
   )
 }

@@ -54,6 +54,15 @@ const STEPS: DemoStep[] = [
   },
   {
     id: 6,
+      title: "Browse another user's events",
+      status: 'implemented',
+      route: '/events',
+      routeLabel: 'Browse by handle',
+      explanation:
+        'Enter a handle. The app resolves their DID, contacts their PDS directly, and reads their org.community.event records. No server we control is involved in this request.',
+    },
+    {
+      id: 7,
     title: 'Open event detail page',
     status: 'implemented',
     route: '/events',
@@ -61,7 +70,7 @@ const STEPS: DemoStep[] = [
     explanation: 'Open /events/:encodedAtUri from an EventCard to show User View vs Protocol View.',
   },
   {
-    id: 7,
+      id: 8,
     title: 'Explain why cross-user discovery needs AppView/indexer',
     status: 'partial',
     route: '/debug',
@@ -69,7 +78,7 @@ const STEPS: DemoStep[] = [
     explanation: 'Architecture callouts are present; full cross-user discovery is intentionally not implemented yet.',
   },
   {
-    id: 8,
+      id: 9,
     title: 'Show future protocol intents: RSVP/Repost/Follow',
     status: 'partial',
     route: '/debug',
@@ -90,7 +99,7 @@ export function DemoWalkthroughPage() {
       <h2 style={{ margin: '0 0 8px', color: '#0f172a' }}>Guided walkthrough</h2>
       <p style={{ margin: '0 0 14px', fontSize: '12px', color: '#64748b', lineHeight: 1.5 }}>
         Use this ordered script during demos so the story is consistent: session → validation → write → read-back →
-        list → detail → architecture boundaries → future intents.
+        list (my PDS) → list (their PDS) → detail → architecture boundaries → future intents.
       </p>
 
       <ol style={{ margin: 0, paddingLeft: '20px', display: 'grid', gap: '10px' }}>

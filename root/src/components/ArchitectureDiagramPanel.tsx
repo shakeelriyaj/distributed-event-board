@@ -65,6 +65,21 @@ export function ArchitectureDiagramPanel() {
           ]}
         />
         <DiagramBlock
+          title="CROSS-REPO READ (IMPLEMENTED)"
+          accent="#1d4ed8"
+          steps={[
+            '✅ Client',
+            '↓',
+            '✅ resolveHandle',
+            '↓',
+            '✅ PDS B (foreign repo)',
+            '↓',
+            '✅ listRecords',
+            '↓',
+            '✅ render',
+          ]}
+        />
+        <DiagramBlock
           title="FUTURE DISCOVERY FLOW"
           accent="#92400e"
           steps={[

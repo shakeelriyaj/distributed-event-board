@@ -11,6 +11,7 @@ export type EventCardProps = {
   uri?: string
   cid?: string
   sourceVariant?: SourceBadgeVariant
+  sourceLabelOverride?: string
 }
 
 function formatWhen(value?: string | null): string {
@@ -29,6 +30,7 @@ export function EventCard({
   uri,
   cid,
   sourceVariant,
+  sourceLabelOverride,
 }: EventCardProps) {
   const [copied, setCopied] = useState(false)
 
@@ -56,7 +58,7 @@ export function EventCard({
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
         <h3 style={{ margin: 0, color: '#0f172a' }}>{title || '(untitled event)'}</h3>
-        {sourceVariant ? <SourceBadge variant={sourceVariant} /> : null}
+        {sourceVariant ? <SourceBadge variant={sourceVariant} labelOverride={sourceLabelOverride} /> : null}
       </div>
 
       <div style={{ marginTop: '8px', display: 'grid', gap: '4px', fontSize: '13px', color: '#334155' }}>
